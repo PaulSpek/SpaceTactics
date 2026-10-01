@@ -6,6 +6,8 @@ An in-progress FPGA implementation of the 1980s arcade game **Space Tactics** fo
 
 This is a first hardware revision. It includes the 8080 compatible CPU, MAME memory map, four scrolling video planes, palette PROM lookup, basic game inputs, and MiSTer ROM loading. Sound, cabinet lamps, score display, LED beam artwork, and accurate motor movement are still pending. The inherited 50.54945 MHz PLL output is divided to approximately 1.944 MHz CPU and 5.055 MHz pixel clocks; exact MAME timing and hardware testing remain to be done.
 
+The first remote Quartus 17.0 full compile produced `output_files/SpaceTactics.rbf`, but TimeQuest reported unmet setup and hold timing (worst setup slack -45.509 ns; worst hold slack -332.672 ns, including inherited framework clock domains). Treat this bitstream as experimental; timing closure and on-device testing are still required.
+
 ## Layout
 
 - rtl/ — synthesizable Verilog/SystemVerilog/VHDL.
