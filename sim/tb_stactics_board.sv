@@ -76,10 +76,17 @@ module tb_stactics_board;
         dut.v_count = 231;
         dut.pixel_phase = 9;
         @(negedge clk);
-        if (dut.vert_pos !== -1 || dut.source_y_calc !== 233)
+        if (dut.vert_pos !== -1)
             $fatal(1, "mirror movement not applied: pos=%0d source_y=%0d",
                    dut.vert_pos, dut.source_y_calc);
         joy_ud_n = 2'b11;
+        @(negedge clk);
+        dut.h_count = 0;
+        dut.v_count = 100;
+        #1;
+        if (dut.playfield_y !== 120 || dut.source_y_calc !== 121)
+            $fatal(1, "scaled mirror coordinate: y=%0d source_y=%0d",
+                   dut.playfield_y, dut.source_y_calc);
 
         // A lit bit from epr-217 is overlaid at the bottom of the two beam
         // rails while a shot is in flight.
@@ -87,11 +94,38 @@ module tb_stactics_board;
         dut.shot_standby = 0;
         dut.beam_state = 0;
         dut.h_count = 0;
-        dut.v_count = 188;
+        dut.v_count = 156;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);
         if (red !== 8'h20 || green !== 8'hff || blue !== 8'h40)
             $fatal(1, "beam overlay: %02x %02x %02x", red, green, blue);
+
+        // Motor-on lights the fixed red sight dot over the moving playfield.
+        @(negedge clk);
+        dut.h_count = 127;
+        dut.v_count = 77;
+        dut.pixel_phase = 0;
+        repeat (8) @(negedge clk);
+        if (red !== 8'hff || green !== 8'h18 || blue !== 8'h10)
+            $fatal(1, "red sight dot: %02x %02x %02x", red, green, blue);
+
+        // Dashboard values are the real active-low game display latches.
+        write_cpu(16'h6061, 8'hfd); // score digit 2
+        write_cpu(16'h6069, 8'h0f); // light first barrier indicator
+        @(negedge clk);
+        dut.h_count = 93;
+        dut.v_count = 207;
+        dut.pixel_phase = 0;
+        repeat (8) @(negedge clk);
+        if (red !== 8'hff || green !== 8'h20 || blue !== 8'h10)
+            $fatal(1, "dashboard score digit: %02x %02x %02x", red, green, blue);
+        @(negedge clk);
+        dut.h_count = 9;
+        dut.v_count = 217;
+        dut.pixel_phase = 0;
+        repeat (8) @(negedge clk);
+        if (red !== 8'hff || green !== 8'h38 || blue !== 8'h18)
+            $fatal(1, "barrier indicator: %02x %02x %02x", red, green, blue);
         @(negedge clk);
         dut.h_count = 327;
         dut.v_count = 231;
@@ -101,7 +135,7 @@ module tb_stactics_board;
         cpu_int_ack = 1;
         @(negedge clk);
         if (irq_n !== 1) $fatal(1, "interrupt acknowledge");
-        $display("PASS: ROM, RAM, scroll, mirror movement, beam, video and interrupt");
+        $display("PASS: ROM, RAM, movement, beam, sight, dashboard, video and interrupt");
         $finish;
     end
 endmodule

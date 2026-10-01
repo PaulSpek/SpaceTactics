@@ -21,7 +21,11 @@ module tb_stactics_sound;
         .player_shot_pulse(player_shot_pulse)
     );
 
-    stactics_sound #(.SAMPLE_DIV(8)) sound (
+    stactics_sound #(
+        .SAMPLE_DIV(8),
+        .HIGH_SAMPLES(64),
+        .TOTAL_SAMPLES(192)
+    ) sound (
         .clk(clk), .reset(reset), .audio_latch(audio_latch),
         .sound2_pulse(sound2_pulse),
         .player_shot_pulse(player_shot_pulse),
@@ -66,18 +70,25 @@ module tb_stactics_sound;
         if (sound2_pulse !== 0)
             $fatal(1, "secondary trigger did not clear");
 
-        // A 6040 write starts an audible player-shot envelope.
+        // A 6040 write starts the high-pitch first action.
         write_cpu(16'h6040, 8'h00);
         nonzero_samples = 0;
-        repeat (5000) begin
+        repeat (400) begin
             @(posedge clk);
             if (audio_sample != 0)
                 nonzero_samples = nonzero_samples + 1;
         end
         if (nonzero_samples == 0)
             $fatal(1, "player-shot voice produced no audio");
-        if (sound.envelope == 0)
-            $fatal(1, "player-shot envelope ended too quickly");
+        if (sound.low_stage || !sound.shot_active)
+            $fatal(1, "player-shot high stage ended too quickly");
+
+        // The second action must retrigger a lower-pitch sweep.
+        repeat (240) @(posedge clk);
+        if (!sound.low_stage || !sound.shot_active)
+            $fatal(1, "player-shot did not enter its low stage");
+        if (sound.phase_step >= 16'd3000)
+            $fatal(1, "player-shot low stage pitch is too high");
 
         // Mute suppresses gameplay audio.
         write_cpu(16'h6010, 8'h01);

@@ -45,14 +45,22 @@ module stactics_board (
     logic [8:0] beam_state;
     logic [3:0] beam_step;
     logic shot_standby, shot_arrive, irq_pending;
+    logic dashboard_active;
+    logic [7:0] dashboard_red, dashboard_green, dashboard_blue;
+    integer reset_index;
 
     // The real cabinet moves its monitor and mirror mechanically. MAME draws
     // the composed picture at (x-horiz_pos, y+vert_pos), then applies the
     // cabinet's horizontal flip. Work backwards from each output pixel here
-    // so that the same motion is visible on a conventional display.
+    // so that the same motion is visible on a conventional display. The game
+    // raster is scaled into 192 lines, reserving 40 lines for the dashboard.
+    wire playfield_area = h_count < 256 && v_count < 192;
+    wire [16:0] playfield_y_product = v_count[7:0] * 9'd309;
+    wire [8:0] playfield_y = playfield_y_product[16:8];
     wire signed [9:0] source_x_calc = $signed({1'b0, ~h_count[7:0]}) + horiz_pos;
-    wire signed [9:0] source_y_calc = $signed({1'b0, v_count[7:0]}) - vert_pos;
-    wire source_valid = source_x_calc >= 0 && source_x_calc < 256 &&
+    wire signed [9:0] source_y_calc = $signed({1'b0, playfield_y}) - vert_pos;
+    wire source_valid = playfield_area &&
+                        source_x_calc >= 0 && source_x_calc < 256 &&
                         source_y_calc >= 0 && source_y_calc < 256;
     wire [7:0] video_x = source_x_calc[7:0];
     wire [7:0] video_y = source_y_calc[7:0];
@@ -77,8 +85,9 @@ module stactics_board (
     // The cabinet fire beam consists of two mirrored banks of 64 LEDs. Map
     // them into the visible raster as converging rails. The inexpensive shift
     // approximations follow the geometry in MAME's stactics artwork layout.
-    wire beam_y_visible = v_count >= 94 && v_count <= 188 && h_count < 256;
-    wire [7:0] beam_delta = 8'd188 - v_count[7:0];
+    wire beam_y_visible = playfield_area &&
+                          playfield_y >= 94 && playfield_y <= 188;
+    wire [7:0] beam_delta = 8'd188 - playfield_y[7:0];
     wire [7:0] beam_index_calc = beam_delta - (beam_delta >> 2) - (beam_delta >> 4);
     wire [5:0] beam_index = beam_index_calc > 62 ? 6'd62 : beam_index_calc[5:0];
     wire [8:0] beam_x_left = beam_delta + (beam_delta >> 2) +
@@ -89,6 +98,8 @@ module stactics_board (
                           (h_count + 2 >= beam_x_right && h_count <= beam_x_right));
     wire [10:0] beam_rom_addr = {beam_index[3], beam_index[5:4], beam_state[7:0]};
     wire beam_pixel = !shot_standby && beam_location && beam_q[beam_index[2:0]];
+    wire sight_pixel = audio_latch[6] && h_count >= 126 && h_count <= 129 &&
+                       v_count >= 76 && v_count <= 79;
 
     stactics_sound_ctrl sound_ctrl (
         .clk(clk),
@@ -109,6 +120,27 @@ module stactics_board (
         .player_shot_pulse(player_shot_pulse),
         .diagnostic_trigger(diag_sound),
         .audio_sample(audio_sample)
+    );
+
+    stactics_dashboard dashboard (
+        .x(h_count), .y(v_count),
+        .display_1(display_latch[1]),
+        .display_2(display_latch[2]),
+        .display_3(display_latch[3]),
+        .display_4(display_latch[4]),
+        .display_5(display_latch[5]),
+        .display_6(display_latch[6]),
+        .display_9(display_latch[9]),
+        .display_10(display_latch[10]),
+        .display_11(display_latch[11]),
+        .display_12(display_latch[12]),
+        .display_13(display_latch[13]),
+        .display_14(display_latch[14]),
+        .display_15(display_latch[15]),
+        .active(dashboard_active),
+        .red(dashboard_red),
+        .green(dashboard_green),
+        .blue(dashboard_blue)
     );
 
     // CPU and renderer each have a synchronous read port on the video RAM.
@@ -167,7 +199,13 @@ module stactics_board (
             edges = 0;
             for (i = 0; i < 8; i = i + 1)
                 if (value[i] && !value[(i+1)%8]) edges = edges + 1'b1;
-            beam_speed = (edges * 19) / 8;
+            case (edges)
+                3'd1: beam_speed = 4'd2;
+                3'd2: beam_speed = 4'd4;
+                3'd3: beam_speed = 4'd7;
+                3'd4: beam_speed = 4'd9;
+                default: beam_speed = 4'd0;
+            endcase
         end
     endfunction
 
@@ -175,6 +213,8 @@ module stactics_board (
         if (reset) begin
             scroll_d <= 0; scroll_e <= 0; scroll_f <= 0;
             out_latch <= 0; lamp_latch <= 0;
+            for (reset_index = 0; reset_index < 16; reset_index = reset_index + 1)
+                display_latch[reset_index] <= 0;
             frame_count <= 0; vert_pos <= 0; horiz_pos <= 0;
             beam_state <= 0; beam_step <= 0;
             shot_standby <= 1; shot_arrive <= 0; irq_pending <= 0;
@@ -246,7 +286,15 @@ module stactics_board (
                     gfx_f[~video_x[2:0]], gfx_b[~video_x[2:0]], tile_b[7:4]};
         if (pixel_phase == 5) prom_q <= color_prom[pen];
         if (pixel_phase == 6) begin
-            if (beam_pixel) begin
+            if (dashboard_active) begin
+                red <= dashboard_red;
+                green <= dashboard_green;
+                blue <= dashboard_blue;
+            end else if (sight_pixel) begin
+                red <= 8'hff;
+                green <= 8'h18;
+                blue <= 8'h10;
+            end else if (beam_pixel) begin
                 red <= 8'h20;
                 green <= 8'hff;
                 blue <= 8'h40;

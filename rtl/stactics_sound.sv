@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // First-pass Space Tactics sound generator.
 //
-// This milestone implements a recognizable player-shot voice. It intentionally
-// keeps the five secondary triggers available but silent until their schematic
-// functions are verified.
+// The player-shot voice follows the two-stage high/low sweep heard in reference
+// recordings of the cabinet. The five secondary triggers remain available but
+// silent until their schematic functions are verified.
 module stactics_sound #(
     parameter integer SAMPLE_DIV = 1024,
-    parameter logic [15:0] ENVELOPE_DECAY = 16'd4
+    parameter logic [14:0] HIGH_SAMPLES = 15'd4096,
+    parameter logic [14:0] TOTAL_SAMPLES = 15'd16384
 ) (
     input  logic               clk,
     input  logic               reset,
@@ -18,33 +19,52 @@ module stactics_sound #(
 );
     logic [9:0] sample_div;
     logic [15:0] phase;
-    logic [15:0] envelope;
+    logic [14:0] shot_age;
+    logic        shot_active;
     logic [14:0] noise_lfsr;
     logic diagnostic_d;
     logic diagnostic_bypass;
     logic signed [16:0] mixed_sample;
+    logic [15:0] voice_envelope;
+    logic [15:0] phase_step;
+    logic [14:0] low_age;
 
     wire sample_tick = sample_div == SAMPLE_DIV - 1;
     wire diagnostic_rise = diagnostic_trigger && !diagnostic_d;
+    wire low_stage = shot_age >= HIGH_SAMPLES;
     wire sound_enabled = (audio_latch[7] && !audio_latch[0]) ||
                          diagnostic_bypass;
 
     always_comb begin
-        // A swept square wave plus quieter LFSR noise gives a useful first-pass
-        // laser/shot timbre without placing multipliers in the audio path.
-        mixed_sample = phase[15] ? $signed({1'b0, envelope[15:1]}) :
-                                   -$signed({1'b0, envelope[15:1]});
+        low_age = shot_age - HIGH_SAMPLES;
+        if (!low_stage) begin
+            // About 3.3 kHz down to 1.8 kHz over the first 83 ms.
+            phase_step = 16'd4400 - {2'b00, shot_age[14:1]};
+            voice_envelope = 16'h7fff - {shot_age[13:0], 2'b00};
+        end else begin
+            // A second attack around 1.6 kHz, falling toward 450 Hz over
+            // roughly 249 ms. This produces the cabinet's double action.
+            phase_step = 16'd2125 - {4'b0000, low_age[14:3]};
+            voice_envelope = 16'h5fff - {low_age, 1'b0};
+        end
+
+        mixed_sample = phase[15] ?
+                       $signed({1'b0, voice_envelope[15:1]}) :
+                       -$signed({1'b0, voice_envelope[15:1]});
         if (noise_lfsr[0])
-            mixed_sample = mixed_sample + $signed({2'b00, envelope[15:2]});
+            mixed_sample = mixed_sample +
+                           $signed({3'b000, voice_envelope[15:3]});
         else
-            mixed_sample = mixed_sample - $signed({2'b00, envelope[15:2]});
+            mixed_sample = mixed_sample -
+                           $signed({3'b000, voice_envelope[15:3]});
     end
 
     always_ff @(posedge clk) begin
         if (reset) begin
             sample_div        <= 10'd0;
             phase             <= 16'd0;
-            envelope          <= 16'd0;
+            shot_age          <= 15'd0;
+            shot_active       <= 1'b0;
             noise_lfsr        <= 15'h4a35;
             diagnostic_d      <= 1'b0;
             diagnostic_bypass <= 1'b0;
@@ -57,27 +77,24 @@ module stactics_sound #(
                 sample_div <= sample_div + 1'b1;
 
             if (player_shot_pulse || diagnostic_rise) begin
-                phase      <= 16'd0;
-                envelope   <= 16'h7fff;
-                noise_lfsr <= 15'h4a35;
-                if (diagnostic_rise)
-                    diagnostic_bypass <= 1'b1;
-            end else if (sample_tick && envelope != 0) begin
-                // At the default 49.36 kHz sample rate, a decay step of four
-                // gives the player shot a duration of roughly 166 ms.
-                phase <= phase + 16'd900 + {6'd0, envelope[15:6]};
+                phase             <= 16'd0;
+                shot_age          <= 15'd0;
+                shot_active       <= 1'b1;
+                noise_lfsr        <= 15'h4a35;
+                diagnostic_bypass <= diagnostic_rise;
+            end else if (sample_tick && shot_active) begin
+                phase <= phase + phase_step;
                 noise_lfsr <= {noise_lfsr[13:0],
                                noise_lfsr[14] ^ noise_lfsr[13]};
-                if (envelope > ENVELOPE_DECAY)
-                    envelope <= envelope - ENVELOPE_DECAY;
-                else begin
-                    envelope          <= 16'd0;
+                if (shot_age >= TOTAL_SAMPLES - 1'b1) begin
+                    shot_active       <= 1'b0;
                     diagnostic_bypass <= 1'b0;
-                end
+                end else
+                    shot_age <= shot_age + 1'b1;
             end
 
             if (sample_tick) begin
-                if (!sound_enabled || envelope == 0)
+                if (!sound_enabled || !shot_active)
                     audio_sample <= 16'sd0;
                 else if (mixed_sample > 17'sd32767)
                     audio_sample <= 16'sh7fff;

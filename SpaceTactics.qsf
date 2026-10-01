@@ -295,6 +295,7 @@ set_instance_assignment -name WEAK_PULL_UP_RESISTOR ON -to BTN_*
 set_global_assignment -name SYSTEMVERILOG_FILE SpaceTactics.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/stactics_sound.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/stactics_sound_ctrl.sv
+set_global_assignment -name SYSTEMVERILOG_FILE rtl/stactics_dashboard.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/stactics_board.sv
 set_global_assignment -name VERILOG_FILE rtl/tv80/tv80_alu.v
 set_global_assignment -name VERILOG_FILE rtl/tv80/tv80_core.v

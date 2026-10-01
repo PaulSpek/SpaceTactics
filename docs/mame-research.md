@@ -33,7 +33,8 @@ Primary source: [MAME Space Tactics driver](https://github.com/mamedev/mame/blob
   has a first-pass player-shot voice and preserves the remaining sound controls;
   the other effects, SN76477 model, and BBD echo are still pending.
 - The cabinet's LED fire beam is rendered as two in-raster converging rails using
-  `epr-217`; score and indicator lamps are not yet rendered.
+  `epr-217`. The red aiming sight and compact Energy Barrier, six-digit score,
+  and round dashboard indicators are also rendered from their live latches.
 - Mechanical mirror movement now shifts the composed picture and supplies the
   position/status reads; its speed and limits still need hardware verification.
 - Pixel and CPU clocks use simple divisors of the inherited 50.54945 MHz PLL, giving a slightly slower frame rate than MAME's crystal derived timings.

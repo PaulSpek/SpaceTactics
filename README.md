@@ -4,7 +4,7 @@ An in-progress FPGA implementation of the 1980s arcade game **Space Tactics** fo
 
 ## Status
 
-This is a first hardware revision. It includes the 8080 compatible CPU, MAME memory map, four scrolling video planes, palette PROM lookup, basic game inputs, visible mirror movement, an in-raster representation of the ROM-driven LED fire beam, MiSTer ROM loading, and a first-pass synthesized player-shot sound. The remaining discrete sounds, SN76477 model, BBD echo, cabinet lamps, score display, and accurate motor timing are still pending. The inherited 50.54945 MHz PLL output is divided to approximately 1.944 MHz CPU and 5.055 MHz pixel clocks; exact MAME timing and broader hardware testing remain to be done.
+This is a first hardware revision. It includes the 8080 compatible CPU, MAME memory map, four scrolling video planes, palette PROM lookup, basic game inputs, visible mirror movement, a red aiming sight, an in-raster representation of the ROM-driven LED fire beam, a compact live dashboard for Energy Barrier, score, and round indicators, MiSTer ROM loading, and a two-stage synthesized player-shot sound. The remaining discrete sounds, SN76477 model, BBD echo, other cabinet lamps, and accurate motor timing are still pending. The inherited 50.54945 MHz PLL output is divided to approximately 1.944 MHz CPU and 5.055 MHz pixel clocks; exact MAME timing and broader hardware testing remain to be done.
 
 The first remote Quartus 17.0 full compile produced `output_files/SpaceTactics.rbf`, but TimeQuest reported unmet setup and hold timing (worst setup slack -45.509 ns; worst hold slack -332.672 ns, including inherited framework clock domains). Treat this bitstream as experimental; timing closure and on-device testing are still required.
 
