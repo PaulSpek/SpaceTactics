@@ -10,6 +10,7 @@ param(
     [Parameter(Mandatory=$true)][string]$Pscp,
     [Parameter(Mandatory=$true)][string]$Plink,
     [string]$MisterUser = 'root',
+    [string]$Password,
     [string]$HostKey,
     [switch]$NoSync,
     [switch]$NoVerify
@@ -18,5 +19,5 @@ param(
 $ErrorActionPreference = 'Stop'
 $compileArgs = @{ RemoteUser=$RemoteUser; RemoteHost=$RemoteHost; RemoteRepo=$RemoteRepo; QuartusSh=$QuartusSh; Revision=$Revision; LocalRbf=$LocalRbf; NoSync=$NoSync }
 & (Join-Path $PSScriptRoot 'remote_compile.ps1') @compileArgs
-$transferArgs = @{ LocalRbf=$LocalRbf; MisterHost=$MisterHost; MisterUser=$MisterUser; MisterPath=$MisterPath; Pscp=$Pscp; Plink=$Plink; HostKey=$HostKey; NoVerify=$NoVerify }
+$transferArgs = @{ LocalRbf=$LocalRbf; MisterHost=$MisterHost; MisterUser=$MisterUser; Password=$Password; MisterPath=$MisterPath; Pscp=$Pscp; Plink=$Plink; HostKey=$HostKey; NoVerify=$NoVerify }
 & (Join-Path $PSScriptRoot 'transfer_to_mister.ps1') @transferArgs

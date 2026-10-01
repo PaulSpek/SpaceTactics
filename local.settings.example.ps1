@@ -23,6 +23,8 @@ $SpaceTacticsTransfer = @{
     LocalRbf   = $SpaceTacticsRemoteBuild.LocalRbf
     MisterHost = 'mister.local'
     MisterUser = 'root'
+    # Store the MiSTer password only in local.settings.ps1, which is ignored.
+    Password   = ''
     MisterPath = '/media/fat/_Arcade/cores/SpaceTactics.rbf'
     Pscp       = 'C:\Program Files\PuTTY\pscp.exe'
     Plink      = 'C:\Program Files\PuTTY\plink.exe'

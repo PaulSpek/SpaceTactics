@@ -26,7 +26,8 @@ function ConvertTo-EncodedPowerShellCommand {
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 if (-not $NoSync) {
     $remoteTarget = "${RemoteUser}@${RemoteHost}:$RemoteRepo/"
-    Get-ChildItem -LiteralPath $RepoRoot -File -Include '*.qpf','*.qsf','*.sdc','*.sv','*.v','*.qip' |
+    Get-ChildItem -LiteralPath $RepoRoot -File |
+        Where-Object { $_.Extension -in '.qpf','.qsf','.sdc','.sv','.v','.qip' } |
         ForEach-Object { Invoke-CheckedCommand @('scp', $_.FullName, $remoteTarget) }
     foreach ($directory in 'rtl','sys') {
         $source = Join-Path $RepoRoot $directory

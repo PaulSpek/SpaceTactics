@@ -29,7 +29,9 @@ Primary source: [MAME Space Tactics driver](https://github.com/mamedev/mame/blob
 
 ## Known gaps
 
-- MAME itself flags discrete and 76477 sound as missing; audio output is silent.
+- MAME itself flags discrete and 76477 sound as missing. The MiSTer core now
+  has a first-pass player-shot voice and preserves the remaining sound controls;
+  the other effects, SN76477 model, and BBD echo are still pending.
 - The cabinet's LED fire beam, score and indicator lamps are not yet rendered.
 - Mechanical mirror movement is approximated only for position/status reads; picture shifting and timing need hardware verification.
 - Pixel and CPU clocks use simple divisors of the inherited 50.54945 MHz PLL, giving a slightly slower frame rate than MAME's crystal derived timings.

@@ -217,9 +217,10 @@ assign LED_USER = !rom_loaded;
 assign LED_POWER = 2'b00;
 assign LED_DISK = 2'b00;
 assign BUTTONS = 2'b00;
-assign AUDIO_L = 16'd0;
-assign AUDIO_R = 16'd0;
-assign AUDIO_S = 1'b0;
+wire signed [15:0] core_audio;
+assign AUDIO_L = core_audio;
+assign AUDIO_R = core_audio;
+assign AUDIO_S = 1'b1;
 assign AUDIO_MIX = 2'b00;
 
 localparam CONF_STR = {
@@ -230,6 +231,7 @@ localparam CONF_STR = {
     "P1O[2],Barriers,4,6;",
     "P1O[3],Bonus barriers,1,2;",
     "P1O[4],Extended play,On,Off;",
+    "T[5],Test player-shot sound;",
     "T[0],Reset;",
     "R[0],Reset and close OSD;",
     "J1,Fire,Button 2,Button 3,Button 4,Button 5,Button 6,Button 7,Coin,Start;",
@@ -321,11 +323,13 @@ stactics_board board (
     .irq_n(irq_n),
     .in0(in0), .in1(in1), .in2(in2), .in3(in3),
     .joy_ud_n({~joystick_0[2], ~joystick_0[3]}),
+    .diag_sound(status[5]),
     .rom_wr(ioctl_download && ioctl_wr && ioctl_index == 16'd1),
     .rom_addr(ioctl_addr[15:0]),
     .rom_data(ioctl_dout),
     .ce_pixel(CE_PIXEL),
     .red(VGA_R), .green(VGA_G), .blue(VGA_B),
-    .hs(VGA_HS), .vs(VGA_VS), .de(VGA_DE)
+    .hs(VGA_HS), .vs(VGA_VS), .de(VGA_DE),
+    .audio_sample(core_audio)
 );
 endmodule

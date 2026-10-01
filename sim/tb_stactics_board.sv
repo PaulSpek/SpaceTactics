@@ -6,10 +6,12 @@ module tb_stactics_board;
     logic [15:0] cpu_addr = 0, rom_addr = 0;
     logic [7:0] cpu_dout = 0, rom_data = 0;
     logic cpu_wr = 0, cpu_int_ack = 0, rom_wr = 0;
+    logic diag_sound = 0;
     logic [7:0] in0 = 8'h7f, in1 = 8'h3f, in2 = 8'hf0, in3 = 8'h7d;
     logic [1:0] joy_ud_n = 2'b11;
     wire [7:0] cpu_din, red, green, blue;
     wire irq_n, ce_pixel, hs, vs, de;
+    wire signed [15:0] audio_sample;
 
     stactics_board dut (.*);
 

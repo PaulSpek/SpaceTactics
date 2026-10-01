@@ -6,11 +6,13 @@ module tb_cpu_bus;
     logic [15:0] rom_addr = 0;
     logic [7:0] rom_data = 0;
     logic rom_wr = 0;
+    logic diag_sound = 0;
     wire [15:0] cpu_addr;
     wire [7:0] cpu_din, cpu_dout;
     wire m1_n, mreq_n, iorq_n, rd_n, wr_n, rfsh_n, halt_n, busak_n;
     wire irq_n, ce_pixel, hs, vs, de;
     wire [7:0] red, green, blue;
+    wire signed [15:0] audio_sample;
     logic [2:0] divider = 0;
     always @(posedge clk) divider <= divider + 1'b1;
     wire cpu_ce = divider == 3'd7;
@@ -27,9 +29,11 @@ module tb_cpu_bus;
         .cpu_wr(cpu_ce && !mreq_n && !wr_n),
         .cpu_int_ack(!m1_n && !iorq_n), .cpu_din(cpu_din), .irq_n(irq_n),
         .in0(8'h7f), .in1(8'h3f), .in2(8'hf0), .in3(8'h7d),
-        .joy_ud_n(2'b11), .rom_wr(rom_wr), .rom_addr(rom_addr),
+        .joy_ud_n(2'b11), .diag_sound(diag_sound),
+        .rom_wr(rom_wr), .rom_addr(rom_addr),
         .rom_data(rom_data), .ce_pixel(ce_pixel), .red(red),
-        .green(green), .blue(blue), .hs(hs), .vs(vs), .de(de)
+        .green(green), .blue(blue), .hs(hs), .vs(vs), .de(de),
+        .audio_sample(audio_sample)
     );
 
     task automatic load_byte(input [15:0] address, input [7:0] value);

@@ -10,12 +10,14 @@ module stactics_board (
     output logic        irq_n,
     input  logic [7:0]  in0, in1, in2, in3,
     input  logic [1:0]  joy_ud_n,
+    input  logic        diag_sound,
     input  logic        rom_wr,
     input  logic [15:0] rom_addr,
     input  logic [7:0]  rom_data,
     output logic        ce_pixel,
     output logic [7:0]  red, green, blue,
-    output logic        hs, vs, de
+    output logic        hs, vs, de,
+    output logic signed [15:0] audio_sample
 );
     logic [7:0] program_rom [0:12287];
     logic [7:0] color_prom [0:2047];
@@ -33,6 +35,8 @@ module stactics_board (
     logic [8:0] h_count = 0, v_count = 0;
     logic [7:0] scroll_d, scroll_e, scroll_f;
     logic [7:0] out_latch, audio_latch, lamp_latch;
+    logic [4:0] sound2_pulse;
+    logic player_shot_pulse;
     logic [7:0] display_latch [0:15];
     logic [3:0] frame_count;
     logic [7:0] rng = 8'h5a;
@@ -60,6 +64,27 @@ module stactics_board (
                                  {1'b1, tile_f, yf[2:0]};
     wire frame_tick = pixel_phase == 9 && h_count == 327 && v_count == 231;
     wire cpu_we = cpu_wr && !reset;
+
+    stactics_sound_ctrl sound_ctrl (
+        .clk(clk),
+        .reset(reset),
+        .cpu_wr(cpu_we),
+        .cpu_addr(cpu_addr),
+        .cpu_dout(cpu_dout),
+        .audio_latch(audio_latch),
+        .sound2_pulse(sound2_pulse),
+        .player_shot_pulse(player_shot_pulse)
+    );
+
+    stactics_sound sound (
+        .clk(clk),
+        .reset(reset),
+        .audio_latch(audio_latch),
+        .sound2_pulse(sound2_pulse),
+        .player_shot_pulse(player_shot_pulse),
+        .diagnostic_trigger(diag_sound),
+        .audio_sample(audio_sample)
+    );
 
     // CPU and renderer each have a synchronous read port on the video RAM.
     always_ff @(posedge clk) begin
@@ -122,7 +147,7 @@ module stactics_board (
     always_ff @(posedge clk) begin
         if (reset) begin
             scroll_d <= 0; scroll_e <= 0; scroll_f <= 0;
-            out_latch <= 0; audio_latch <= 0; lamp_latch <= 0;
+            out_latch <= 0; lamp_latch <= 0;
             frame_count <= 0; vert_pos <= 0; horiz_pos <= 0;
             beam_state <= 0; beam_step <= 0;
             shot_standby <= 1; shot_arrive <= 0; irq_pending <= 0;
@@ -155,7 +180,6 @@ module stactics_board (
             if (cpu_we && cpu_addr[15:12] == 4'h6) begin
                 case (cpu_addr[7:4])
                     4'h0: out_latch[cpu_addr[2:0]] <= cpu_dout[0];
-                    4'h1: audio_latch[cpu_addr[2:0]] <= cpu_dout[0];
                     4'h2: lamp_latch[cpu_addr[2:0]] <= cpu_dout[0];
                     4'h3: beam_step <= beam_speed(cpu_dout);
                     4'h4: shot_standby <= 0;
