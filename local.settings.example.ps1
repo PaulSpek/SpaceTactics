@@ -23,7 +23,7 @@ $SpaceTacticsTransfer = @{
     LocalRbf   = $SpaceTacticsRemoteBuild.LocalRbf
     MisterHost = 'mister.local'
     MisterUser = 'root'
-    MisterPath = '/media/fat/_Arcade/SpaceTactics.rbf'
+    MisterPath = '/media/fat/_Arcade/cores/SpaceTactics.rbf'
     Pscp       = 'C:\Program Files\PuTTY\pscp.exe'
     Plink      = 'C:\Program Files\PuTTY\plink.exe'
 }
