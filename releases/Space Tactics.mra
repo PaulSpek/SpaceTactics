@@ -1,0 +1,23 @@
+<misterromdescription>
+    <name>Space Tactics</name>
+    <setname>stactics</setname>
+    <mameversion>0289</mameversion>
+    <year>1981</year>
+    <manufacturer>Sega</manufacturer>
+    <category>Shooter</category>
+    <rbf>SpaceTactics</rbf>
+    <rotation>horizontal</rotation>
+    <players>1</players>
+    <joystick>8-way</joystick>
+    <num_buttons>7</num_buttons>
+    <buttons names="Fire,Button 2,Button 3,Button 4,Button 5,Button 6,Button 7,Coin,Start" default="A,B,X,Y,L,R,-,Select,Start"/>
+    <rom index="1" zip="stactics.zip" type="merged|nonmerged" md5="none">
+        <part name="epr-218x" crc="b1186ad2"/>
+        <part name="epr-219x" crc="3b86036d"/>
+        <part name="epr-220x" crc="c58702da"/>
+        <part name="epr-221x" crc="e327639e"/>
+        <part name="epr-222y" crc="24dd2bcc"/>
+        <part name="epr-223x" crc="7fef0940"/>
+        <part name="pr54" crc="9640bd6e"/>
+    </rom>
+</misterromdescription>

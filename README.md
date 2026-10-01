@@ -22,13 +22,24 @@ Copy local.settings.example.ps1 to local.settings.ps1 and set paths and host nam
 
 ## ROM preparation
 
-With a legally obtained MAME `stactics.zip`:
+The normal MiSTer installation uses `releases/Space Tactics.mra` and a legally
+obtained `stactics.zip`. Put the MRA in `/media/fat/_Arcade/`, the RBF in
+`/media/fat/_Arcade/cores/`, and the ZIP in `/media/fat/games/mame/`. Selecting
+**Space Tactics** then assembles and loads the required ROM data automatically.
+
+For direct development/debug loading without an MRA:
 
 ```powershell
 python scripts/pack_mame_rom.py C:\path\to\stactics.zip roms\SpaceTactics.rom
 ```
 
 The script validates the six program ROMs and `pr54` color PROM against the MAME CRCs and writes a 14 KiB bundle. Open the core's OSD and choose **Load assembled ROM**. Game ROMs and generated bundles are ignored by Git.
+
+## Controls
+
+Use **Define Space Tactics buttons** in the core OSD to map Fire, cabinet
+buttons 2 through 7, Coin, and Start. The default gamepad mapping uses A/B/X/Y,
+L/R, Select for Coin, and Start for Start. The D-pad controls the aiming motor.
 
 ## Build
 
