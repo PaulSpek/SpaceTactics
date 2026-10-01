@@ -4,7 +4,7 @@ An in-progress FPGA implementation of the 1980s arcade game **Space Tactics** fo
 
 ## Status
 
-Project scaffolding is in place. The next technical milestone is to identify the authoritative MAME driver, document the emulated hardware, and create a minimal CPU/video/audio implementation plan.
+This is a first hardware revision. It includes the 8080 compatible CPU, MAME memory map, four scrolling video planes, palette PROM lookup, basic game inputs, and MiSTer ROM loading. Sound, cabinet lamps, score display, LED beam artwork, and accurate motor movement are still pending. The inherited 50.54945 MHz PLL output is divided to approximately 1.944 MHz CPU and 5.055 MHz pixel clocks; exact MAME timing and hardware testing remain to be done.
 
 ## Layout
 
@@ -18,3 +18,37 @@ Project scaffolding is in place. The next technical milestone is to identify the
 
 Copy local.settings.example.ps1 to local.settings.ps1 and set paths and host names for your setup. It is deliberately ignored by Git: do not place passwords, tokens, or ROMs in tracked files.
 
+## ROM preparation
+
+With a legally obtained MAME `stactics.zip`:
+
+```powershell
+python scripts/pack_mame_rom.py C:\path\to\stactics.zip roms\SpaceTactics.rom
+```
+
+The script validates the six program ROMs and `pr54` color PROM against the MAME CRCs and writes a 14 KiB bundle. Open the core's OSD and choose **Load assembled ROM**. Game ROMs and generated bundles are ignored by Git.
+
+## Build
+
+The MiSTer framework and TV80 CPU were inherited from the Exidy Sorcerer project. Quartus Prime Lite 17.0 targets the DE10-Nano:
+
+```powershell
+& 'D:\intelFPGA_lite\17.0\quartus\bin64\quartus_sh.exe' --flow compile SpaceTactics
+```
+
+For the faster Windows workstation, use the example settings. The script sends the Quartus source tree, builds remotely, and fetches the RBF:
+
+```powershell
+. .\local.settings.ps1
+.\scripts\remote_compile.ps1 @SpaceTacticsRemoteBuild
+```
+
+Deployment is a separate step after inspecting the build result:
+
+```powershell
+.\scripts\transfer_to_mister.ps1 @SpaceTacticsTransfer
+```
+
+If these machine settings change, edit the ignored `local.settings.ps1`. The tracked example shows the same schema without local host details.
+
+See [MAME research](docs/mame-research.md) for hardware mapping and the remaining implementation gaps.

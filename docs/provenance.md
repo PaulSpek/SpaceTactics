@@ -1,0 +1,5 @@
+# Source provenance
+
+- MiSTer platform files under `sys/`, Cyclone V PLL files under `rtl/pll*`, and the TV80 CPU under `rtl/tv80/` were copied from [PaulSpek/Sorcerer_MiSTer](https://github.com/PaulSpek/Sorcerer_MiSTer) at local HEAD `c5f9813e6ce6b32fd551aaad3ba74996d6befdd0`. The source checkout had a local CRT vertical sync adjustment in `sys/sys_top.v`, which was included. Existing source headers retain their author and license notices.
+- Space Tactics board behavior was researched from [MAME `stactics.cpp`](https://github.com/mamedev/mame/blob/0e0e3b864952e230fca5e591cf8518e58b7b4a32/src/mame/sega/stactics.cpp), revision `0e0e3b864952e230fca5e591cf8518e58b7b4a32`. MAME driver source is BSD-3-Clause; this repository does not include a copy of the driver or any game ROMs.
+- The project includes GPL version 3 text in `LICENSE` because the inherited MiSTer framework includes files licensed under GPL 3 or later. The TV80 files retain their permissive notices; Quartus generated IP files carry Intel's own terms.

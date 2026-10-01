@@ -14,8 +14,11 @@ Push-Location $SimRoot
 try {
     & "$ModelSim\vlib.exe" work
     if ($LASTEXITCODE -ne 0) { throw 'vlib failed' }
-    & "$ModelSim\vlog.exe" -sv @Sources
+    & "$ModelSim\vlog.exe" -sv -permissive -suppress 2388 @Sources
     if ($LASTEXITCODE -ne 0) { throw 'vlog failed' }
-    & "$ModelSim\vsim.exe" -c $Testbench -do 'run -all; quit -f'
+    & "$ModelSim\vsim.exe" -c -l transcript $Testbench -do 'run -all; quit -f'
     if ($LASTEXITCODE -ne 0) { throw 'vsim failed' }
+    if (Select-String -Path (Join-Path $SimRoot 'transcript') -SimpleMatch '# ** Fatal:' -Quiet) {
+        throw 'vsim reported a fatal assertion; see sim/transcript'
+    }
 } finally { Pop-Location }

@@ -28,7 +28,7 @@ if (-not $NoSync) {
     $remoteTarget = "${RemoteUser}@${RemoteHost}:$RemoteRepo/"
     Get-ChildItem -LiteralPath $RepoRoot -File -Include '*.qpf','*.qsf','*.sdc','*.sv','*.v','*.qip' |
         ForEach-Object { Invoke-CheckedCommand @('scp', $_.FullName, $remoteTarget) }
-    foreach ($directory in 'rtl','sim') {
+    foreach ($directory in 'rtl','sys') {
         $source = Join-Path $RepoRoot $directory
         if (Test-Path -LiteralPath $source) { Invoke-CheckedCommand @('scp', '-r', $source, $remoteTarget) }
     }

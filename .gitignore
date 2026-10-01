@@ -34,4 +34,7 @@ build_id.v
 *.swp
 *~
 **/.DS_Store
-
+*.rom
+*.zip
+roms/*
+!roms/.gitkeep
