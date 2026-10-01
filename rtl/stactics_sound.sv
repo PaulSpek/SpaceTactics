@@ -4,7 +4,10 @@
 // This milestone implements a recognizable player-shot voice. It intentionally
 // keeps the five secondary triggers available but silent until their schematic
 // functions are verified.
-module stactics_sound (
+module stactics_sound #(
+    parameter integer SAMPLE_DIV = 1024,
+    parameter logic [15:0] ENVELOPE_DECAY = 16'd4
+) (
     input  logic               clk,
     input  logic               reset,
     input  logic [7:0]         audio_latch,
@@ -13,8 +16,6 @@ module stactics_sound (
     input  logic               diagnostic_trigger,
     output logic signed [15:0] audio_sample
 );
-    localparam integer SAMPLE_DIV = 1024;
-
     logic [9:0] sample_div;
     logic [15:0] phase;
     logic [15:0] envelope;
@@ -62,12 +63,13 @@ module stactics_sound (
                 if (diagnostic_rise)
                     diagnostic_bypass <= 1'b1;
             end else if (sample_tick && envelope != 0) begin
-                // Pitch falls with the envelope over roughly 128 ms.
+                // At the default 49.36 kHz sample rate, a decay step of four
+                // gives the player shot a duration of roughly 166 ms.
                 phase <= phase + 16'd900 + {6'd0, envelope[15:6]};
                 noise_lfsr <= {noise_lfsr[13:0],
                                noise_lfsr[14] ^ noise_lfsr[13]};
-                if (envelope > 16'd128)
-                    envelope <= envelope - 16'd128;
+                if (envelope > ENVELOPE_DECAY)
+                    envelope <= envelope - ENVELOPE_DECAY;
                 else begin
                     envelope          <= 16'd0;
                     diagnostic_bypass <= 1'b0;

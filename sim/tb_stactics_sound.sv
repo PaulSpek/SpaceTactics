@@ -21,7 +21,7 @@ module tb_stactics_sound;
         .player_shot_pulse(player_shot_pulse)
     );
 
-    stactics_sound sound (
+    stactics_sound #(.SAMPLE_DIV(8)) sound (
         .clk(clk), .reset(reset), .audio_latch(audio_latch),
         .sound2_pulse(sound2_pulse),
         .player_shot_pulse(player_shot_pulse),
@@ -76,6 +76,8 @@ module tb_stactics_sound;
         end
         if (nonzero_samples == 0)
             $fatal(1, "player-shot voice produced no audio");
+        if (sound.envelope == 0)
+            $fatal(1, "player-shot envelope ended too quickly");
 
         // Mute suppresses gameplay audio.
         write_cpu(16'h6010, 8'h01);

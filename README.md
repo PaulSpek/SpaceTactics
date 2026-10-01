@@ -4,7 +4,7 @@ An in-progress FPGA implementation of the 1980s arcade game **Space Tactics** fo
 
 ## Status
 
-This is a first hardware revision. It includes the 8080 compatible CPU, MAME memory map, four scrolling video planes, palette PROM lookup, basic game inputs, MiSTer ROM loading, and a first-pass synthesized player-shot sound. The remaining discrete sounds, SN76477 model, BBD echo, cabinet lamps, score display, LED beam artwork, and accurate motor movement are still pending. The inherited 50.54945 MHz PLL output is divided to approximately 1.944 MHz CPU and 5.055 MHz pixel clocks; exact MAME timing and broader hardware testing remain to be done.
+This is a first hardware revision. It includes the 8080 compatible CPU, MAME memory map, four scrolling video planes, palette PROM lookup, basic game inputs, visible mirror movement, an in-raster representation of the ROM-driven LED fire beam, MiSTer ROM loading, and a first-pass synthesized player-shot sound. The remaining discrete sounds, SN76477 model, BBD echo, cabinet lamps, score display, and accurate motor timing are still pending. The inherited 50.54945 MHz PLL output is divided to approximately 1.944 MHz CPU and 5.055 MHz pixel clocks; exact MAME timing and broader hardware testing remain to be done.
 
 The first remote Quartus 17.0 full compile produced `output_files/SpaceTactics.rbf`, but TimeQuest reported unmet setup and hold timing (worst setup slack -45.509 ns; worst hold slack -332.672 ns, including inherited framework clock domains). Treat this bitstream as experimental; timing closure and on-device testing are still required.
 
@@ -33,7 +33,10 @@ For direct development/debug loading without an MRA:
 python scripts/pack_mame_rom.py C:\path\to\stactics.zip roms\SpaceTactics.rom
 ```
 
-The script validates the six program ROMs and `pr54` color PROM against the MAME CRCs and writes a 14 KiB bundle. Open the core's OSD and choose **Load assembled ROM**. Game ROMs and generated bundles are ignored by Git.
+The script validates the six program ROMs, `pr54` color PROM, and `epr-217`
+beam ROM against the MAME CRCs and writes a 16 KiB bundle. Open the core's OSD
+and choose **Load assembled ROM**. Game ROMs and generated bundles are ignored
+by Git.
 
 ## Controls
 

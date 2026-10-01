@@ -21,13 +21,14 @@ module stactics_board (
 );
     logic [7:0] program_rom [0:12287];
     logic [7:0] color_prom [0:2047];
+    logic [7:0] beam_rom [0:2047];
     logic [7:0] work_ram [0:255];
     logic [7:0] vram_b [0:4095];
     logic [7:0] vram_d [0:4095];
     logic [7:0] vram_e [0:4095];
     logic [7:0] vram_f [0:4095];
     logic [7:0] rom_q, ram_q, b_cpu_q, d_cpu_q, e_cpu_q, f_cpu_q;
-    logic [7:0] b_video_q, d_video_q, e_video_q, f_video_q;
+    logic [7:0] b_video_q, d_video_q, e_video_q, f_video_q, beam_q;
     logic [7:0] tile_b, tile_d, tile_e, tile_f;
     logic [7:0] gfx_b, gfx_d, gfx_e, gfx_f, prom_q;
     logic [9:0] pen;
@@ -45,8 +46,16 @@ module stactics_board (
     logic [3:0] beam_step;
     logic shot_standby, shot_arrive, irq_pending;
 
-    wire [7:0] video_x = ~h_count[7:0]; // MAME ORIENTATION_FLIP_X
-    wire [7:0] video_y = v_count[7:0];
+    // The real cabinet moves its monitor and mirror mechanically. MAME draws
+    // the composed picture at (x-horiz_pos, y+vert_pos), then applies the
+    // cabinet's horizontal flip. Work backwards from each output pixel here
+    // so that the same motion is visible on a conventional display.
+    wire signed [9:0] source_x_calc = $signed({1'b0, ~h_count[7:0]}) + horiz_pos;
+    wire signed [9:0] source_y_calc = $signed({1'b0, v_count[7:0]}) - vert_pos;
+    wire source_valid = source_x_calc >= 0 && source_x_calc < 256 &&
+                        source_y_calc >= 0 && source_y_calc < 256;
+    wire [7:0] video_x = source_x_calc[7:0];
+    wire [7:0] video_y = source_y_calc[7:0];
     wire [7:0] yd = video_y - scroll_d;
     wire [7:0] ye = video_y - scroll_e;
     wire [7:0] yf = video_y - scroll_f;
@@ -64,6 +73,22 @@ module stactics_board (
                                  {1'b1, tile_f, yf[2:0]};
     wire frame_tick = pixel_phase == 9 && h_count == 327 && v_count == 231;
     wire cpu_we = cpu_wr && !reset;
+
+    // The cabinet fire beam consists of two mirrored banks of 64 LEDs. Map
+    // them into the visible raster as converging rails. The inexpensive shift
+    // approximations follow the geometry in MAME's stactics artwork layout.
+    wire beam_y_visible = v_count >= 94 && v_count <= 188 && h_count < 256;
+    wire [7:0] beam_delta = 8'd188 - v_count[7:0];
+    wire [7:0] beam_index_calc = beam_delta - (beam_delta >> 2) - (beam_delta >> 4);
+    wire [5:0] beam_index = beam_index_calc > 62 ? 6'd62 : beam_index_calc[5:0];
+    wire [8:0] beam_x_left = beam_delta + (beam_delta >> 2) +
+                             (beam_delta >> 4) + (beam_delta >> 6);
+    wire [8:0] beam_x_right = 9'd255 - beam_x_left;
+    wire beam_location = beam_y_visible &&
+                         ((h_count >= beam_x_left && h_count <= beam_x_left + 2) ||
+                          (h_count + 2 >= beam_x_right && h_count <= beam_x_right));
+    wire [10:0] beam_rom_addr = {beam_index[3], beam_index[5:4], beam_state[7:0]};
+    wire beam_pixel = !shot_standby && beam_location && beam_q[beam_index[2:0]];
 
     stactics_sound_ctrl sound_ctrl (
         .clk(clk),
@@ -98,9 +123,11 @@ module stactics_board (
         d_video_q <= vram_d[video_addr_d];
         e_video_q <= vram_e[video_addr_e];
         f_video_q <= vram_f[video_addr_f];
+        beam_q <= beam_rom[beam_rom_addr];
         if (rom_wr) begin
             if (rom_addr < 16'h3000) program_rom[rom_addr] <= rom_data;
             else if (rom_addr < 16'h3800) color_prom[rom_addr - 16'h3000] <= rom_data;
+            else if (rom_addr < 16'h4000) beam_rom[rom_addr - 16'h3800] <= rom_data;
         end
         if (cpu_we) begin
             case (cpu_addr[15:12])
@@ -219,9 +246,19 @@ module stactics_board (
                     gfx_f[~video_x[2:0]], gfx_b[~video_x[2:0]], tile_b[7:4]};
         if (pixel_phase == 5) prom_q <= color_prom[pen];
         if (pixel_phase == 6) begin
-            red <= {8{prom_q[0]}};
-            green <= prom_q[1] ? (prom_q[3] ? 8'h33 : 8'hff) : 8'h00;
-            blue <= {8{prom_q[2]}};
+            if (beam_pixel) begin
+                red <= 8'h20;
+                green <= 8'hff;
+                blue <= 8'h40;
+            end else if (!source_valid) begin
+                red <= 0;
+                green <= 0;
+                blue <= 0;
+            end else begin
+                red <= {8{prom_q[0]}};
+                green <= prom_q[1] ? (prom_q[3] ? 8'h33 : 8'hff) : 8'h00;
+                blue <= {8{prom_q[2]}};
+            end
         end
         if (pixel_phase == 9) begin
             pixel_phase <= 0;

@@ -42,6 +42,7 @@ module tb_stactics_board;
     initial begin
         load_rom(16'h0000, 8'hc3);
         load_rom(16'h3011, 8'h01); // pen 0x11 becomes red
+        load_rom(16'h3800, 8'h01); // beam state 0, LED 0 on
         @(negedge clk);
         reset = 0;
         check_read(16'h0000, 8'hc3);
@@ -65,6 +66,32 @@ module tb_stactics_board;
         repeat (8) @(negedge clk);
         if (red !== 8'hff || green !== 0 || blue !== 0)
             $fatal(1, "PROM / video lookup: %02x %02x %02x", red, green, blue);
+
+        // Motor-on plus joystick up must move the emulated mirror, and that
+        // position must feed the source coordinate used by the renderer.
+        write_cpu(16'h6016, 8'h01);
+        joy_ud_n = 2'b10;
+        @(negedge clk);
+        dut.h_count = 327;
+        dut.v_count = 231;
+        dut.pixel_phase = 9;
+        @(negedge clk);
+        if (dut.vert_pos !== -1 || dut.source_y_calc !== 233)
+            $fatal(1, "mirror movement not applied: pos=%0d source_y=%0d",
+                   dut.vert_pos, dut.source_y_calc);
+        joy_ud_n = 2'b11;
+
+        // A lit bit from epr-217 is overlaid at the bottom of the two beam
+        // rails while a shot is in flight.
+        @(negedge clk);
+        dut.shot_standby = 0;
+        dut.beam_state = 0;
+        dut.h_count = 0;
+        dut.v_count = 188;
+        dut.pixel_phase = 0;
+        repeat (8) @(negedge clk);
+        if (red !== 8'h20 || green !== 8'hff || blue !== 8'h40)
+            $fatal(1, "beam overlay: %02x %02x %02x", red, green, blue);
         @(negedge clk);
         dut.h_count = 327;
         dut.v_count = 231;
@@ -74,7 +101,7 @@ module tb_stactics_board;
         cpu_int_ack = 1;
         @(negedge clk);
         if (irq_n !== 1) $fatal(1, "interrupt acknowledge");
-        $display("PASS: ROM, RAM mirror, scroll, palette/video and vblank interrupt");
+        $display("PASS: ROM, RAM, scroll, mirror movement, beam, video and interrupt");
         $finish;
     end
 endmodule

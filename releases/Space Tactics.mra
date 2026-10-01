@@ -19,5 +19,6 @@
         <part name="epr-222y" crc="24dd2bcc"/>
         <part name="epr-223x" crc="7fef0940"/>
         <part name="pr54" crc="9640bd6e"/>
+        <part name="epr-217" crc="38259f5f"/>
     </rom>
 </misterromdescription>
