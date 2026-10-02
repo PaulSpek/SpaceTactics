@@ -234,7 +234,7 @@ localparam CONF_STR = {
     "T[5],Test player-shot sound;",
     "T[0],Reset;",
     "R[0],Reset and close OSD;",
-    "J1,Fire,Button 2,Button 3,Button 4,Button 5,Button 6,Button 7,Coin,Start;",
+    "J,Fire,Button 2,Button 3,Button 4,Button 5,Button 6,Button 7,Coin,Start;",
     "jn,A,B,X,Y,L,R,,Select,Start;",
     "V,v1"
 };
