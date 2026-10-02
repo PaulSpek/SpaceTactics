@@ -51,11 +51,11 @@ module tb_stactics_board;
         write_cpu(16'h8405, 8'h01);
         if (dut.scroll_d !== 8'h05) $fatal(1, "scroll register");
         write_cpu(16'h8400, 8'h01); // restore zero scroll for pixel test
-        write_cpu(16'hb01f, 8'h10); // rightmost B tile: color 1, glyph 0
+        write_cpu(16'hb03f, 8'h10); // source y=8: rightmost B tile in row 1
         write_cpu(16'hb880, 8'h01); // code 0x10, rightmost pixel in glyph row 0
-        write_cpu(16'hd01f, 8'h00);
-        write_cpu(16'he01f, 8'h00);
-        write_cpu(16'hf01f, 8'h00);
+        write_cpu(16'hd03f, 8'h00);
+        write_cpu(16'he03f, 8'h00);
+        write_cpu(16'hf03f, 8'h00);
         write_cpu(16'hd800, 8'h00);
         write_cpu(16'he800, 8'h00);
         write_cpu(16'hf800, 8'h00);
@@ -84,8 +84,8 @@ module tb_stactics_board;
         dut.h_count = 0;
         dut.v_count = 100;
         #1;
-        if (dut.playfield_y !== 120 || dut.source_y_calc !== 121)
-            $fatal(1, "scaled mirror coordinate: y=%0d source_y=%0d",
+        if (dut.playfield_y !== 108 || dut.source_y_calc !== 109)
+            $fatal(1, "cropped mirror coordinate: y=%0d source_y=%0d",
                    dut.playfield_y, dut.source_y_calc);
 
         // A lit bit from epr-217 is overlaid at the bottom of the two beam
@@ -94,16 +94,22 @@ module tb_stactics_board;
         dut.shot_standby = 0;
         dut.beam_state = 0;
         dut.h_count = 0;
-        dut.v_count = 156;
+        dut.v_count = 180;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);
         if (red !== 8'h20 || green !== 8'hff || blue !== 8'h40)
             $fatal(1, "beam overlay: %02x %02x %02x", red, green, blue);
 
-        // Motor-on lights the fixed red sight dot over the moving playfield.
+        // Motor-on lights a small diamond-shaped red sight over the playfield.
         @(negedge clk);
         dut.h_count = 127;
         dut.v_count = 77;
+        #1;
+        if (dut.sight_pixel)
+            $fatal(1, "red sight corner should be transparent");
+        @(negedge clk);
+        dut.h_count = 128;
+        dut.v_count = 78;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);
         if (red !== 8'hff || green !== 8'h18 || blue !== 8'h10)
@@ -113,15 +119,15 @@ module tb_stactics_board;
         write_cpu(16'h6061, 8'hfd); // score digit 2
         write_cpu(16'h6069, 8'h0f); // light first barrier indicator
         @(negedge clk);
-        dut.h_count = 93;
-        dut.v_count = 207;
+        dut.h_count = 95;
+        dut.v_count = 219;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);
         if (red !== 8'hff || green !== 8'h20 || blue !== 8'h10)
             $fatal(1, "dashboard score digit: %02x %02x %02x", red, green, blue);
         @(negedge clk);
-        dut.h_count = 9;
-        dut.v_count = 217;
+        dut.h_count = 8;
+        dut.v_count = 227;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);
         if (red !== 8'hff || green !== 8'h38 || blue !== 8'h18)

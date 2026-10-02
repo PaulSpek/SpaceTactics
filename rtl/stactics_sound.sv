@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 // First-pass Space Tactics sound generator.
 //
-// The player-shot voice follows the two-stage high/low sweep heard in reference
-// recordings of the cabinet. The five secondary triggers remain available but
-// silent until their schematic functions are verified.
+// The player-shot voice follows the separate high/low actions heard in reference
+// recordings of the cabinet. A short quiet interval and phase restart make the
+// second circuit's attack distinct. The five secondary triggers remain available
+// but silent until their schematic functions are verified.
 module stactics_sound #(
     parameter integer SAMPLE_DIV = 1024,
-    parameter logic [14:0] HIGH_SAMPLES = 15'd4096,
+    parameter logic [14:0] HIGH_SAMPLES = 15'd3072,
+    parameter logic [14:0] GAP_SAMPLES = 15'd768,
     parameter logic [14:0] TOTAL_SAMPLES = 15'd16384
 ) (
     input  logic               clk,
@@ -31,21 +33,23 @@ module stactics_sound #(
 
     wire sample_tick = sample_div == SAMPLE_DIV - 1;
     wire diagnostic_rise = diagnostic_trigger && !diagnostic_d;
-    wire low_stage = shot_age >= HIGH_SAMPLES;
+    wire [14:0] low_start = HIGH_SAMPLES + GAP_SAMPLES;
+    wire gap_stage = shot_age >= HIGH_SAMPLES && shot_age < low_start;
+    wire low_stage = shot_age >= low_start;
     wire sound_enabled = (audio_latch[7] && !audio_latch[0]) ||
                          diagnostic_bypass;
 
     always_comb begin
-        low_age = shot_age - HIGH_SAMPLES;
+        low_age = shot_age - low_start;
         if (!low_stage) begin
-            // About 3.3 kHz down to 1.8 kHz over the first 83 ms.
-            phase_step = 16'd4400 - {2'b00, shot_age[14:1]};
-            voice_envelope = 16'h7fff - {shot_age[13:0], 2'b00};
+            // Bright first action: about 3.6 kHz down to 2.5 kHz for 62 ms.
+            phase_step = 16'd4800 - {2'b00, shot_age[14:1]};
+            voice_envelope = 16'h7fff - {shot_age[11:0], 3'b000};
         end else begin
-            // A second attack around 1.6 kHz, falling toward 450 Hz over
-            // roughly 249 ms. This produces the cabinet's double action.
-            phase_step = 16'd2125 - {4'b0000, low_age[14:3]};
-            voice_envelope = 16'h5fff - {low_age, 1'b0};
+            // Independent second attack: about 1.65 kHz, falling toward
+            // 475 Hz. Its envelope starts fresh after the quiet interval.
+            phase_step = 16'd2200 - {4'b0000, low_age[14:3]};
+            voice_envelope = 16'h6fff - {low_age, 1'b0};
         end
 
         mixed_sample = phase[15] ?
@@ -83,7 +87,10 @@ module stactics_sound #(
                 noise_lfsr        <= 15'h4a35;
                 diagnostic_bypass <= diagnostic_rise;
             end else if (sample_tick && shot_active) begin
-                phase <= phase + phase_step;
+                if (shot_age == low_start - 1'b1)
+                    phase <= 16'd0;
+                else
+                    phase <= phase + phase_step;
                 noise_lfsr <= {noise_lfsr[13:0],
                                noise_lfsr[14] ^ noise_lfsr[13]};
                 if (shot_age >= TOTAL_SAMPLES - 1'b1) begin
@@ -94,7 +101,7 @@ module stactics_sound #(
             end
 
             if (sample_tick) begin
-                if (!sound_enabled || !shot_active)
+                if (!sound_enabled || !shot_active || gap_stage)
                     audio_sample <= 16'sd0;
                 else if (mixed_sample > 17'sd32767)
                     audio_sample <= 16'sh7fff;

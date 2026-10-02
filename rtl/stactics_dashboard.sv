@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-// Compact in-raster representation of the Space Tactics physical dashboard.
+// Sixteen-line in-raster representation of the Space Tactics dashboard.
 module stactics_dashboard (
     input  logic [8:0] x,
     input  logic [8:0] y,
@@ -63,63 +63,45 @@ module stactics_dashboard (
         end
     endfunction
 
-    function automatic logic glyph_pixel(
+    function automatic logic micro_glyph(
         input logic [7:0] character,
         input integer row,
         input integer column
     );
-        logic [34:0] glyph;
+        logic [14:0] glyph;
         begin
             case (character)
-                8'h41: glyph = {5'b01110,5'b10001,5'b10001,5'b11111,5'b10001,5'b10001,5'b10001}; // A
-                8'h42: glyph = {5'b11110,5'b10001,5'b10001,5'b11110,5'b10001,5'b10001,5'b11110}; // B
-                8'h43: glyph = {5'b01110,5'b10001,5'b10000,5'b10000,5'b10000,5'b10001,5'b01110}; // C
-                8'h44: glyph = {5'b11110,5'b10001,5'b10001,5'b10001,5'b10001,5'b10001,5'b11110}; // D
-                8'h45: glyph = {5'b11111,5'b10000,5'b10000,5'b11110,5'b10000,5'b10000,5'b11111}; // E
-                8'h47: glyph = {5'b01110,5'b10001,5'b10000,5'b10111,5'b10001,5'b10001,5'b01110}; // G
-                8'h49: glyph = {5'b11111,5'b00100,5'b00100,5'b00100,5'b00100,5'b00100,5'b11111}; // I
-                8'h4e: glyph = {5'b10001,5'b11001,5'b11001,5'b10101,5'b10011,5'b10011,5'b10001}; // N
-                8'h4f: glyph = {5'b01110,5'b10001,5'b10001,5'b10001,5'b10001,5'b10001,5'b01110}; // O
-                8'h52: glyph = {5'b11110,5'b10001,5'b10001,5'b11110,5'b10100,5'b10010,5'b10001}; // R
-                8'h53: glyph = {5'b01111,5'b10000,5'b10000,5'b01110,5'b00001,5'b00001,5'b11110}; // S
-                8'h55: glyph = {5'b10001,5'b10001,5'b10001,5'b10001,5'b10001,5'b10001,5'b01110}; // U
-                8'h59: glyph = {5'b10001,5'b10001,5'b01010,5'b00100,5'b00100,5'b00100,5'b00100}; // Y
-                default: glyph = 35'd0;
+                "A": glyph = 15'b010_101_111_101_101;
+                "B": glyph = 15'b110_101_110_101_110;
+                "D": glyph = 15'b110_101_101_101_110;
+                "E": glyph = 15'b111_100_110_100_111;
+                "G": glyph = 15'b011_100_101_101_011;
+                "I": glyph = 15'b111_010_010_010_111;
+                "N": glyph = 15'b101_111_111_111_101;
+                "O": glyph = 15'b010_101_101_101_010;
+                "R": glyph = 15'b110_101_110_101_101;
+                "U": glyph = 15'b101_101_101_101_111;
+                "Y": glyph = 15'b101_101_010_010_010;
+                default: glyph = 15'd0;
             endcase
-            if (row >= 0 && row < 7 && column >= 0 && column < 5)
-                glyph_pixel = glyph[34 - (row * 5 + column)];
+            if (row >= 0 && row < 5 && column >= 0 && column < 3)
+                micro_glyph = glyph[14 - (row * 3 + column)];
             else
-                glyph_pixel = 1'b0;
-        end
-    endfunction
-
-    function automatic [7:0] energy_char(input integer position);
-        begin
-            case (position)
-                0: energy_char = "E"; 1: energy_char = "N";
-                2: energy_char = "E"; 3: energy_char = "R";
-                4: energy_char = "G"; default: energy_char = "Y";
-            endcase
+                micro_glyph = 1'b0;
         end
     endfunction
 
     function automatic [7:0] barrier_char(input integer position);
         begin
             case (position)
-                0: barrier_char = "B"; 1: barrier_char = "A";
-                2: barrier_char = "R"; 3: barrier_char = "R";
-                4: barrier_char = "I"; 5: barrier_char = "E";
-                default: barrier_char = "R";
-            endcase
-        end
-    endfunction
-
-    function automatic [7:0] score_char(input integer position);
-        begin
-            case (position)
-                0: score_char = "S"; 1: score_char = "C";
-                2: score_char = "O"; 3: score_char = "R";
-                default: score_char = "E";
+                0: barrier_char = "E";  1: barrier_char = "N";
+                2: barrier_char = "E";  3: barrier_char = "R";
+                4: barrier_char = "G";  5: barrier_char = "Y";
+                7: barrier_char = "B";  8: barrier_char = "A";
+                9: barrier_char = "R"; 10: barrier_char = "R";
+               11: barrier_char = "I"; 12: barrier_char = "E";
+               13: barrier_char = "R";
+                default: barrier_char = 8'h20;
             endcase
         end
     endfunction
@@ -141,21 +123,19 @@ module stactics_dashboard (
     );
         begin
             segment_pixel =
-                (segments[0] && py <= 1 && px >= 2 && px <= 6) ||
-                (segments[1] && px >= 7 && py >= 2 && py <= 7) ||
-                (segments[2] && px >= 7 && py >= 9 && py <= 14) ||
-                (segments[3] && py >= 15 && px >= 2 && px <= 6) ||
-                (segments[4] && px <= 1 && py >= 9 && py <= 14) ||
-                (segments[5] && px <= 1 && py >= 2 && py <= 7) ||
-                (segments[6] && py >= 7 && py <= 8 && px >= 2 && px <= 6);
+                (segments[0] && py == 0  && px >= 1 && px <= 5) ||
+                (segments[1] && px == 6  && py >= 1 && py <= 4) ||
+                (segments[2] && px == 6  && py >= 6 && py <= 9) ||
+                (segments[3] && py == 10 && px >= 1 && px <= 5) ||
+                (segments[4] && px == 0  && py >= 6 && py <= 9) ||
+                (segments[5] && px == 0  && py >= 1 && py <= 4) ||
+                (segments[6] && py == 5  && px >= 1 && px <= 5);
         end
     endfunction
 
-    // Quartus 17 treats a procedural loop index as state inside always_comb.
-    // This is a fully assigned combinational renderer; use the equivalent
-    // Verilog sensitivity form for compatibility with that legacy release.
+    // One-line micro-labels, compact score digits, and two rows of live lamps.
     always @* begin
-        active = (x < 256 && y >= 192 && y < 232);
+        active = (x < 256 && y >= 216 && y < 232);
         red = 8'h07;
         green = 8'h12;
         blue = 8'h18;
@@ -167,35 +147,25 @@ module stactics_dashboard (
         seg_mask = 7'd0;
 
         if (active) begin
-            border_on = (y == 192) ||
-                        (((x == 3 || x == 81) && y >= 194 && y <= 229) ||
-                         ((y == 194 || y == 229) && x >= 3 && x <= 81)) ||
-                        (((x == 85 || x == 174) && y >= 194 && y <= 229) ||
-                         ((y == 194 || y == 229) && x >= 85 && x <= 174)) ||
-                        (((x == 178 || x == 252) && y >= 194 && y <= 229) ||
-                         ((y == 194 || y == 229) && x >= 178 && x <= 252));
+            border_on = (y == 216) ||
+                        (((x == 2 || x == 78) && y >= 217 && y <= 230) ||
+                         ((y == 217 || y == 230) && x >= 2 && x <= 78)) ||
+                        (((x == 82 || x == 173) && y >= 217 && y <= 230) ||
+                         ((y == 217 || y == 230) && x >= 82 && x <= 173)) ||
+                        (((x == 177 || x == 253) && y >= 217 && y <= 230) ||
+                         ((y == 217 || y == 230) && x >= 177 && x <= 253));
 
-            for (integer i = 0; i < 6; i = i + 1)
-                if (x >= 8 + i*6 && x < 13 + i*6 && y >= 196 && y < 203)
+            for (integer i = 0; i < 14; i = i + 1)
+                if (x >= 7 + i*4 && x < 10 + i*4 && y >= 219 && y < 224)
                     label_on = label_on |
-                        glyph_pixel(energy_char(i), y-196, x-(8+i*6));
-            for (integer i = 0; i < 7; i = i + 1)
-                if (x >= 8 + i*6 && x < 13 + i*6 && y >= 204 && y < 211)
+                        micro_glyph(barrier_char(i), y-219, x-(7+i*4));
+            for (integer i = 0; i < 5; i = i + 1)
+                if (x >= 202 + i*4 && x < 205 + i*4 && y >= 219 && y < 224)
                     label_on = label_on |
-                        glyph_pixel(barrier_char(i), y-204, x-(8+i*6));
-            for (integer i = 0; i < 5; i = i + 1) begin
-                if (x >= 112 + i*6 && x < 117 + i*6 && y >= 196 && y < 203)
-                    label_on = label_on |
-                        glyph_pixel(score_char(i), y-196, x-(112+i*6));
-                if (x >= 199 + i*6 && x < 204 + i*6 && y >= 196 && y < 203)
-                    label_on = label_on |
-                        glyph_pixel(round_char(i), y-196, x-(199+i*6));
-            end
+                        micro_glyph(round_char(i), y-219, x-(202+i*4));
 
-            // Red LED rows, dim when off and bright when selected by the
-            // original 7448/display-latch wiring.
             for (integer i = 0; i < 12; i = i + 1) begin
-                if (x >= 8 + i*5 && x <= 10 + i*5 && y >= 216 && y <= 218) begin
+                if (x >= 8 + i*5 && x <= 9 + i*5 && y >= 226 && y <= 228) begin
                     indicator_area = 1'b1;
                     case (i / 4)
                         0: indicator_on = indicator_on | indicator_bit(display_9, i % 4);
@@ -205,7 +175,7 @@ module stactics_dashboard (
                 end
             end
             for (integer i = 0; i < 16; i = i + 1) begin
-                if (x >= 183 + i*4 && x <= 185 + i*4 && y >= 216 && y <= 218) begin
+                if (x >= 183 + i*4 && x <= 184 + i*4 && y >= 226 && y <= 228) begin
                     indicator_area = 1'b1;
                     case (i / 4)
                         0: indicator_on = indicator_on | indicator_bit(display_12, i % 4);
@@ -216,7 +186,6 @@ module stactics_dashboard (
                 end
             end
 
-            // Six active-low 7448 digits in the dashboard's red score window.
             for (integer i = 0; i < 6; i = i + 1) begin
                 case (i)
                     0: seg_mask = seven_seg(~display_1[3:0]);
@@ -226,13 +195,13 @@ module stactics_dashboard (
                     4: seg_mask = seven_seg(~display_5[3:0]);
                     default: seg_mask = seven_seg(~display_6[3:0]);
                 endcase
-                if (x >= 91 + i*13 && x < 100 + i*13 &&
-                    y >= 207 && y < 224)
+                if (x >= 94 + i*12 && x < 101 + i*12 &&
+                    y >= 219 && y < 230)
                     score_on = score_on |
-                        segment_pixel(seg_mask, x-(91+i*13), y-207);
+                        segment_pixel(seg_mask, x-(94+i*12), y-219);
             end
 
-            if (x >= 89 && x <= 169 && y >= 205 && y <= 225) begin
+            if (x >= 86 && x <= 169 && y >= 218 && y <= 229) begin
                 red = 8'h1c;
                 green = 8'h02;
                 blue = 8'h04;

@@ -53,10 +53,10 @@ module stactics_board (
     // the composed picture at (x-horiz_pos, y+vert_pos), then applies the
     // cabinet's horizontal flip. Work backwards from each output pixel here
     // so that the same motion is visible on a conventional display. The game
-    // raster is scaled into 192 lines, reserving 40 lines for the dashboard.
-    wire playfield_area = h_count < 256 && v_count < 192;
-    wire [16:0] playfield_y_product = v_count[7:0] * 9'd309;
-    wire [8:0] playfield_y = playfield_y_product[16:8];
+    // crop eight source lines from the top and bottom, leaving 216 unscaled
+    // playfield lines and reserving 16 raster lines for the dashboard.
+    wire playfield_area = h_count < 256 && v_count < 216;
+    wire [8:0] playfield_y = {1'b0, v_count[7:0]} + 9'd8;
     wire signed [9:0] source_x_calc = $signed({1'b0, ~h_count[7:0]}) + horiz_pos;
     wire signed [9:0] source_y_calc = $signed({1'b0, playfield_y}) - vert_pos;
     wire source_valid = playfield_area &&
@@ -98,8 +98,11 @@ module stactics_board (
                           (h_count + 2 >= beam_x_right && h_count <= beam_x_right));
     wire [10:0] beam_rom_addr = {beam_index[3], beam_index[5:4], beam_state[7:0]};
     wire beam_pixel = !shot_standby && beam_location && beam_q[beam_index[2:0]];
-    wire sight_pixel = audio_latch[6] && h_count >= 126 && h_count <= 129 &&
-                       v_count >= 76 && v_count <= 79;
+    // A three-by-three diamond reads as a round sight at the core's native
+    // resolution without obscuring the target behind a solid square.
+    wire sight_pixel = audio_latch[6] &&
+                       (((h_count == 127 || h_count == 129) && v_count == 78) ||
+                        (h_count == 128 && v_count >= 77 && v_count <= 79));
 
     stactics_sound_ctrl sound_ctrl (
         .clk(clk),

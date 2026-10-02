@@ -24,7 +24,8 @@ module tb_stactics_sound;
     stactics_sound #(
         .SAMPLE_DIV(8),
         .HIGH_SAMPLES(64),
-        .TOTAL_SAMPLES(192)
+        .GAP_SAMPLES(24),
+        .TOTAL_SAMPLES(224)
     ) sound (
         .clk(clk), .reset(reset), .audio_latch(audio_latch),
         .sound2_pulse(sound2_pulse),
@@ -83,11 +84,18 @@ module tb_stactics_sound;
         if (sound.low_stage || !sound.shot_active)
             $fatal(1, "player-shot high stage ended too quickly");
 
-        // The second action must retrigger a lower-pitch sweep.
-        repeat (240) @(posedge clk);
+        // The two actions must be separated by an actual quiet interval.
+        wait (sound.gap_stage);
+        repeat (10) @(posedge clk);
+        if (audio_sample != 0 || !sound.shot_active)
+            $fatal(1, "player-shot separation is not quiet");
+
+        // The second action must restart with a lower-pitch sweep.
+        wait (sound.low_stage);
+        repeat (10) @(posedge clk);
         if (!sound.low_stage || !sound.shot_active)
             $fatal(1, "player-shot did not enter its low stage");
-        if (sound.phase_step >= 16'd3000)
+        if (sound.phase_step >= 16'd3000 || audio_sample == 0)
             $fatal(1, "player-shot low stage pitch is too high");
 
         // Mute suppresses gameplay audio.
