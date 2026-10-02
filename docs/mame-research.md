@@ -30,13 +30,17 @@ Primary source: [MAME Space Tactics driver](https://github.com/mamedev/mame/blob
 ## Known gaps
 
 - MAME itself flags discrete and 76477 sound as missing. The MiSTer core now
-  has a first-pass player-shot voice and preserves the remaining sound controls;
-  the other effects, SN76477 model, and BBD echo are still pending.
+  gives `0x604x` player fire and the two MAME beam arrival thresholds separate
+  synthesized voices, matching the service manual's distinct PLAYER SHOT SOUND
+  and SHOT ARRIVE PULSE labels. The other effects, SN76477 model, and BBD echo
+  are still pending.
 - The cabinet's LED fire beam is rendered as two in-raster converging rails using
-  `epr-217`. A small round red aiming sight and a 16-line Energy Barrier,
-  six-digit score, and round dashboard strip are rendered from their live latches.
-  The playfield is not rescaled: source lines 8 through 223 are shown directly,
-  cropping eight lines at both the top and bottom.
+  `epr-217`. A single red aiming pixel and a 16-line Energy Barrier, six-digit
+  score, and round dashboard strip are rendered from their live latches. The
+  dashboard is centred with 24-pixel horizontal safety margins and is visible
+  only while the game motor is active. The playfield is not rescaled: source
+  lines 8 through 223 are shown directly, cropping eight lines at both the top
+  and bottom.
 - Mechanical mirror movement now shifts the composed picture and supplies the
   position/status reads; its speed and limits still need hardware verification.
 - Pixel and CPU clocks use simple divisors of the inherited 50.54945 MHz PLL, giving a slightly slower frame rate than MAME's crystal derived timings.

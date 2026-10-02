@@ -3,6 +3,7 @@
 module stactics_dashboard (
     input  logic [8:0] x,
     input  logic [8:0] y,
+    input  logic       enabled,
     input  logic [7:0] display_1,
     input  logic [7:0] display_2,
     input  logic [7:0] display_3,
@@ -123,19 +124,19 @@ module stactics_dashboard (
     );
         begin
             segment_pixel =
-                (segments[0] && py == 0  && px >= 1 && px <= 5) ||
-                (segments[1] && px == 6  && py >= 1 && py <= 4) ||
-                (segments[2] && px == 6  && py >= 6 && py <= 9) ||
-                (segments[3] && py == 10 && px >= 1 && px <= 5) ||
-                (segments[4] && px == 0  && py >= 6 && py <= 9) ||
-                (segments[5] && px == 0  && py >= 1 && py <= 4) ||
-                (segments[6] && py == 5  && px >= 1 && px <= 5);
+                (segments[0] && py == 0 && px >= 1 && px <= 3) ||
+                (segments[1] && px == 4 && py >= 1 && py <= 3) ||
+                (segments[2] && px == 4 && py >= 5 && py <= 7) ||
+                (segments[3] && py == 8 && px >= 1 && px <= 3) ||
+                (segments[4] && px == 0 && py >= 5 && py <= 7) ||
+                (segments[5] && px == 0 && py >= 1 && py <= 3) ||
+                (segments[6] && py == 4 && px >= 1 && px <= 3);
         end
     endfunction
 
     // One-line micro-labels, compact score digits, and two rows of live lamps.
     always @* begin
-        active = (x < 256 && y >= 216 && y < 232);
+        active = enabled && (x < 256 && y >= 216 && y < 232);
         red = 8'h07;
         green = 8'h12;
         blue = 8'h18;
@@ -148,24 +149,24 @@ module stactics_dashboard (
 
         if (active) begin
             border_on = (y == 216) ||
-                        (((x == 2 || x == 78) && y >= 217 && y <= 230) ||
-                         ((y == 217 || y == 230) && x >= 2 && x <= 78)) ||
-                        (((x == 82 || x == 173) && y >= 217 && y <= 230) ||
-                         ((y == 217 || y == 230) && x >= 82 && x <= 173)) ||
-                        (((x == 177 || x == 253) && y >= 217 && y <= 230) ||
-                         ((y == 217 || y == 230) && x >= 177 && x <= 253));
+                        (((x == 24 || x == 85) && y >= 217 && y <= 230) ||
+                         ((y == 217 || y == 230) && x >= 24 && x <= 85)) ||
+                        (((x == 89 || x == 167) && y >= 217 && y <= 230) ||
+                         ((y == 217 || y == 230) && x >= 89 && x <= 167)) ||
+                        (((x == 171 || x == 232) && y >= 217 && y <= 230) ||
+                         ((y == 217 || y == 230) && x >= 171 && x <= 232));
 
             for (integer i = 0; i < 14; i = i + 1)
-                if (x >= 7 + i*4 && x < 10 + i*4 && y >= 219 && y < 224)
+                if (x >= 27 + i*4 && x < 30 + i*4 && y >= 219 && y < 224)
                     label_on = label_on |
-                        micro_glyph(barrier_char(i), y-219, x-(7+i*4));
+                        micro_glyph(barrier_char(i), y-219, x-(27+i*4));
             for (integer i = 0; i < 5; i = i + 1)
-                if (x >= 202 + i*4 && x < 205 + i*4 && y >= 219 && y < 224)
+                if (x >= 191 + i*4 && x < 194 + i*4 && y >= 219 && y < 224)
                     label_on = label_on |
-                        micro_glyph(round_char(i), y-219, x-(202+i*4));
+                        micro_glyph(round_char(i), y-219, x-(191+i*4));
 
             for (integer i = 0; i < 12; i = i + 1) begin
-                if (x >= 8 + i*5 && x <= 9 + i*5 && y >= 226 && y <= 228) begin
+                if (x == 29 + i*4 && y >= 226 && y <= 228) begin
                     indicator_area = 1'b1;
                     case (i / 4)
                         0: indicator_on = indicator_on | indicator_bit(display_9, i % 4);
@@ -175,7 +176,7 @@ module stactics_dashboard (
                 end
             end
             for (integer i = 0; i < 16; i = i + 1) begin
-                if (x >= 183 + i*4 && x <= 184 + i*4 && y >= 226 && y <= 228) begin
+                if (x == 177 + i*3 && y >= 226 && y <= 228) begin
                     indicator_area = 1'b1;
                     case (i / 4)
                         0: indicator_on = indicator_on | indicator_bit(display_12, i % 4);
@@ -195,13 +196,13 @@ module stactics_dashboard (
                     4: seg_mask = seven_seg(~display_5[3:0]);
                     default: seg_mask = seven_seg(~display_6[3:0]);
                 endcase
-                if (x >= 94 + i*12 && x < 101 + i*12 &&
-                    y >= 219 && y < 230)
+                if (x >= 105 + i*8 && x < 110 + i*8 &&
+                    y >= 220 && y < 229)
                     score_on = score_on |
-                        segment_pixel(seg_mask, x-(94+i*12), y-219);
+                        segment_pixel(seg_mask, x-(105+i*8), y-220);
             end
 
-            if (x >= 86 && x <= 169 && y >= 218 && y <= 229) begin
+            if (x >= 93 && x <= 163 && y >= 219 && y <= 229) begin
                 red = 8'h1c;
                 green = 8'h02;
                 blue = 8'h04;

@@ -41,8 +41,20 @@ normal latch outputs.
 | `0x6040-0x604f` | Fire-beam/shot trigger | One-cycle player-shot trigger and existing beam start | High |
 | `0x6050-0x605f` | Clear shot-arrival flag | Existing beam/status behavior; no direct sound effect | High |
 
-Any write to `0x604x` triggers the first-pass player-shot voice. The voice uses
-a swept square wave, LFSR noise, and a fixed-point decay envelope.
+The service manual's sound-board schematic labels **PLAYER SHOT SOUND** and
+**SHOT ARRIVE PULSE** separately. It also lists two MN3101/MN3005 BBD pairs,
+an MB4391, an AN6551, a 94560, an SN76477, and three LM324s. MAME's beam-state
+logic identifies two arrival thresholds (`0x08b` and `0x0ca`) and notes that
+they are sound triggers not yet implemented there. The current core therefore
+uses the hardware event timing rather than an artificial gap in one oscillator:
+
+- A `0x604x` write immediately starts a short, descending high fire voice.
+- Each emulated beam arrival threshold starts/restarts a distinct lower,
+  longer, lightly noise-coloured arrival voice.
+
+This is a synthesis approximation informed by the supplied recording and
+schematic signal names, not an SN76477/BBD netlist emulation. The two voices may
+overlap at their real beam timing, but are independently triggered and shaped.
 
 ## Secondary sound writes
 
@@ -73,7 +85,8 @@ the emulated CPU-visible latch.
 
 - CPU sound latch extracted into `rtl/stactics_sound_ctrl.sv`.
 - Five secondary write groups decoded and simulation-tested.
-- Player-shot generator implemented in `rtl/stactics_sound.sv`.
+- Independent player-fire and beam-arrival generators implemented in
+  `rtl/stactics_sound.sv`.
 - Signed dual-mono output connected to MiSTer.
 - Mute, sound enable, saturation, reset, and diagnostic behavior tested.
 - Existing board/video and CPU-bus simulations pass.

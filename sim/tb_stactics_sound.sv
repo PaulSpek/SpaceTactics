@@ -8,6 +8,7 @@ module tb_stactics_sound;
     logic [15:0] cpu_addr = 0;
     logic [7:0] cpu_dout = 0;
     logic diagnostic_trigger = 0;
+    logic shot_arrive_pulse = 0;
     wire [7:0] audio_latch;
     wire [4:0] sound2_pulse;
     wire player_shot_pulse;
@@ -24,12 +25,12 @@ module tb_stactics_sound;
     stactics_sound #(
         .SAMPLE_DIV(8),
         .HIGH_SAMPLES(64),
-        .GAP_SAMPLES(24),
-        .TOTAL_SAMPLES(224)
+        .LOW_SAMPLES(160)
     ) sound (
         .clk(clk), .reset(reset), .audio_latch(audio_latch),
         .sound2_pulse(sound2_pulse),
         .player_shot_pulse(player_shot_pulse),
+        .shot_arrive_pulse(shot_arrive_pulse),
         .diagnostic_trigger(diagnostic_trigger),
         .audio_sample(audio_sample)
     );
@@ -81,22 +82,21 @@ module tb_stactics_sound;
         end
         if (nonzero_samples == 0)
             $fatal(1, "player-shot voice produced no audio");
-        if (sound.low_stage || !sound.shot_active)
+        if (sound.low_active || !sound.high_active)
             $fatal(1, "player-shot high stage ended too quickly");
 
-        // The two actions must be separated by an actual quiet interval.
-        wait (sound.gap_stage);
-        repeat (10) @(posedge clk);
-        if (audio_sample != 0 || !sound.shot_active)
-            $fatal(1, "player-shot separation is not quiet");
-
-        // The second action must restart with a lower-pitch sweep.
-        wait (sound.low_stage);
-        repeat (10) @(posedge clk);
-        if (!sound.low_stage || !sound.shot_active)
-            $fatal(1, "player-shot did not enter its low stage");
-        if (sound.phase_step >= 16'd3000 || audio_sample == 0)
-            $fatal(1, "player-shot low stage pitch is too high");
+        // The lower action is a separate SHOT ARRIVE PULSE, not a later stage
+        // of the player-shot oscillator.
+        @(negedge clk);
+        shot_arrive_pulse = 1;
+        @(negedge clk);
+        shot_arrive_pulse = 0;
+        repeat (80) @(posedge clk);
+        if (!sound.low_active || sound.low_step >= sound.high_step || audio_sample == 0)
+            $fatal(1, "arrival voice was not independently started and lower pitched");
+        wait (!sound.high_active);
+        if (!sound.low_active)
+            $fatal(1, "arrival voice did not outlast the fire voice");
 
         // Mute suppresses gameplay audio.
         write_cpu(16'h6010, 8'h01);

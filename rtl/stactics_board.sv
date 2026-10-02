@@ -44,7 +44,7 @@ module stactics_board (
     logic signed [8:0] vert_pos, horiz_pos;
     logic [8:0] beam_state;
     logic [3:0] beam_step;
-    logic shot_standby, shot_arrive, irq_pending;
+    logic shot_standby, shot_arrive, shot_arrive_pulse, irq_pending;
     logic dashboard_active;
     logic [7:0] dashboard_red, dashboard_green, dashboard_blue;
     integer reset_index;
@@ -98,11 +98,9 @@ module stactics_board (
                           (h_count + 2 >= beam_x_right && h_count <= beam_x_right));
     wire [10:0] beam_rom_addr = {beam_index[3], beam_index[5:4], beam_state[7:0]};
     wire beam_pixel = !shot_standby && beam_location && beam_q[beam_index[2:0]];
-    // A three-by-three diamond reads as a round sight at the core's native
-    // resolution without obscuring the target behind a solid square.
-    wire sight_pixel = audio_latch[6] &&
-                       (((h_count == 127 || h_count == 129) && v_count == 78) ||
-                        (h_count == 128 && v_count >= 77 && v_count <= 79));
+    // The cabinet's sight is a single red aiming lamp. Keep it a true one
+    // pixel point, rather than a raster-scaled cursor, so it remains precise.
+    wire sight_pixel = audio_latch[6] && h_count == 128 && v_count == 78;
 
     stactics_sound_ctrl sound_ctrl (
         .clk(clk),
@@ -121,12 +119,13 @@ module stactics_board (
         .audio_latch(audio_latch),
         .sound2_pulse(sound2_pulse),
         .player_shot_pulse(player_shot_pulse),
+        .shot_arrive_pulse(shot_arrive_pulse),
         .diagnostic_trigger(diag_sound),
         .audio_sample(audio_sample)
     );
 
     stactics_dashboard dashboard (
-        .x(h_count), .y(v_count),
+        .x(h_count), .y(v_count), .enabled(audio_latch[6]),
         .display_1(display_latch[1]),
         .display_2(display_latch[2]),
         .display_3(display_latch[3]),
@@ -220,16 +219,20 @@ module stactics_board (
                 display_latch[reset_index] <= 0;
             frame_count <= 0; vert_pos <= 0; horiz_pos <= 0;
             beam_state <= 0; beam_step <= 0;
-            shot_standby <= 1; shot_arrive <= 0; irq_pending <= 0;
+            shot_standby <= 1; shot_arrive <= 0; shot_arrive_pulse <= 0; irq_pending <= 0;
         end else begin
             rng <= {rng[6:0], rng[7] ^ rng[5] ^ rng[4] ^ rng[3]};
+            shot_arrive_pulse <= 0;
             if (cpu_int_ack) irq_pending <= 0;
             if (frame_tick) begin
                 irq_pending <= 1;
                 frame_count <= frame_count + 1'b1;
                 if (!shot_standby) begin
                     if ((beam_state < 9'h08b && beam_state + beam_step >= 9'h08b) ||
-                        (beam_state < 9'h0ca && beam_state + beam_step >= 9'h0ca)) shot_arrive <= 1;
+                        (beam_state < 9'h0ca && beam_state + beam_step >= 9'h0ca)) begin
+                        shot_arrive <= 1;
+                        shot_arrive_pulse <= 1;
+                    end
                     if (beam_state + beam_step >= 9'h100) begin
                         beam_state <= 0;
                         shot_standby <= 1;

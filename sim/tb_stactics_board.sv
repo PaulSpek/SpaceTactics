@@ -67,6 +67,15 @@ module tb_stactics_board;
         if (red !== 8'hff || green !== 0 || blue !== 0)
             $fatal(1, "PROM / video lookup: %02x %02x %02x", red, green, blue);
 
+        // The dashboard and aiming light are cabinet play indicators: neither
+        // appears while the motor is off / a game is not in progress.
+        @(negedge clk);
+        dut.h_count = 128;
+        dut.v_count = 78;
+        #1;
+        if (dut.sight_pixel || dut.dashboard_active)
+            $fatal(1, "play indicators visible with motor off");
+
         // Motor-on plus joystick up must move the emulated mirror, and that
         // position must feed the source coordinate used by the renderer.
         write_cpu(16'h6016, 8'h01);
@@ -100,10 +109,10 @@ module tb_stactics_board;
         if (red !== 8'h20 || green !== 8'hff || blue !== 8'h40)
             $fatal(1, "beam overlay: %02x %02x %02x", red, green, blue);
 
-        // Motor-on lights a small diamond-shaped red sight over the playfield.
+        // Motor-on lights one precise red aiming pixel over the playfield.
         @(negedge clk);
         dut.h_count = 127;
-        dut.v_count = 77;
+        dut.v_count = 78;
         #1;
         if (dut.sight_pixel)
             $fatal(1, "red sight corner should be transparent");
@@ -119,14 +128,14 @@ module tb_stactics_board;
         write_cpu(16'h6061, 8'hfd); // score digit 2
         write_cpu(16'h6069, 8'h0f); // light first barrier indicator
         @(negedge clk);
-        dut.h_count = 95;
-        dut.v_count = 219;
+        dut.h_count = 106;
+        dut.v_count = 220;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);
         if (red !== 8'hff || green !== 8'h20 || blue !== 8'h10)
             $fatal(1, "dashboard score digit: %02x %02x %02x", red, green, blue);
         @(negedge clk);
-        dut.h_count = 8;
+        dut.h_count = 29;
         dut.v_count = 227;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);
