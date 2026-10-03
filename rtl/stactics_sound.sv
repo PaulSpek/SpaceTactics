@@ -32,6 +32,9 @@ module stactics_sound #(
     logic signed [17:0] explosion_noise;
     logic signed [17:0] explosion_target;
     logic [5:0] explosion_noise_div;
+    logic signed [17:0] bomb_noise;
+    logic signed [17:0] bomb_target;
+    logic [4:0] bomb_noise_div;
 
     logic [15:0] high_step, low_step, high_envelope, low_envelope;
     logic signed [20:0] high_voice, low_voice, ufo_voice, warning_voice, rocket_voice;
@@ -100,9 +103,9 @@ module stactics_sound #(
 
         // A-E retain ROM address order. Effect names are provisional until
         // every sound-board input net has been traced from the schematic.
-        event_voice[0] = square_voice(event_phase[0], decay_env(16'h2800, 16'h0200, event_age[0], 1));
-        if (noise_lfsr[2]) event_voice[0] = event_voice[0] + 21'sd2400;
-        else event_voice[0] = event_voice[0] - 21'sd2400;
+        // 0x60a0 is the bomb-like one-shot. It is a low, decaying percussion
+        // burst, not a chirped oscillator (the latter was the audible pew).
+        event_voice[0] = bomb_noise >>> event_age[0][13:11];
 
         event_voice[1] = square_voice(event_phase[1], decay_env(16'h2400, 16'h0200, event_age[1], 3));
         if (noise_lfsr[3]) event_voice[1] = event_voice[1] + 21'sd1200;
@@ -175,6 +178,9 @@ module stactics_sound #(
             explosion_noise <= 0;
             explosion_target <= 0;
             explosion_noise_div <= 0;
+            bomb_noise <= 0;
+            bomb_target <= 0;
+            bomb_noise_div <= 0;
             diagnostic_d <= 0; diagnostic_bypass <= 0;
             audio_sample <= 0; audio_front <= 0; audio_back <= 0;
             for (i = 0; i < 5; i = i + 1) begin
@@ -246,6 +252,20 @@ module stactics_sound #(
                     explosion_noise_div <= 0;
                     explosion_target <= 0;
                     explosion_noise <= explosion_noise - (explosion_noise >>> 5);
+                end
+                if (event_active[0]) begin
+                    bomb_noise_div <= bomb_noise_div + 1'b1;
+                    if (&bomb_noise_div) begin
+                        if (noise_lfsr[9]) bomb_target <= 18'sd22000;
+                        else bomb_target <= -18'sd22000;
+                    end
+                    // Low-pass the noise heavily to retain the cabinet's deep
+                    // impact character rather than a sharp digital hiss.
+                    bomb_noise <= bomb_noise + ((bomb_target - bomb_noise) >>> 3);
+                end else begin
+                    bomb_noise_div <= 0;
+                    bomb_target <= 0;
+                    bomb_noise <= bomb_noise - (bomb_noise >>> 4);
                 end
                 if (sound_enabled) begin
                     audio_front <= clamp16(front_mix);

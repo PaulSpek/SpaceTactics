@@ -91,22 +91,15 @@ module stactics_board (
     wire frame_tick = pixel_phase == 9 && h_count == 335 && v_count == 231;
     wire cpu_we = cpu_wr && !reset;
 
-    // The cabinet fire beam consists of two mirrored banks of 64 LEDs. Map
-    // them into the visible raster as converging rails. The inexpensive shift
-    // approximations follow the geometry in MAME's stactics artwork layout.
-    wire beam_y_visible = playfield_area &&
-                          playfield_y >= 94 && playfield_y <= 188;
-    wire [7:0] beam_delta = 8'd188 - playfield_y[7:0];
-    wire [7:0] beam_index_calc = beam_delta - (beam_delta >> 2) - (beam_delta >> 4);
-    wire [5:0] beam_index = beam_index_calc > 62 ? 6'd62 : beam_index_calc[5:0];
-    // The optical gun produces shallow, mostly horizontal traces rather than
-    // steep rails. Keep the two traces separated at the emitter and let them
-    // converge gently toward the target.
-    wire [8:0] beam_x_left = 9'd16 + beam_delta - (beam_delta >> 3);
-    wire [8:0] beam_x_right = 9'd239 - beam_delta + (beam_delta >> 3);
-    wire beam_location = beam_y_visible &&
-                         ((h_count >= beam_x_left && h_count <= beam_x_left + 2) ||
-                          (h_count + 2 >= beam_x_right && h_count <= beam_x_right));
+    // The cabinet's two LED banks fire in from the left and right hand sides.
+    // They occupy the same horizontal row as the fixed aiming lamp; they are
+    // not perspective rails descending into the scene. The beam ROM supplies
+    // the animated bright/dark segments along each 64-lamp bank.
+    wire beam_y_visible = playfield_area && v_count >= 93 && v_count <= 95;
+    wire [8:0] beam_distance = h_count < 128 ? 9'd128 - h_count : h_count - 9'd128;
+    wire [5:0] beam_index = beam_distance > 63 ? 6'd63 : beam_distance[5:0];
+    wire beam_location = beam_y_visible && h_count >= 4 && h_count < 252 &&
+                         h_count != 128;
     wire [10:0] beam_rom_addr = {beam_index[3], beam_index[5:4], beam_state[7:0]};
     wire beam_pixel = !shot_standby && beam_location && beam_q[beam_index[2:0]];
     // The cabinet's sight is a single red aiming lamp. Keep it a true one

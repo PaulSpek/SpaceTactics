@@ -98,17 +98,19 @@ module tb_stactics_board;
             $fatal(1, "cropped mirror coordinate: y=%0d source_y=%0d",
                    dut.playfield_y, dut.source_y_calc);
 
-        // A lit bit from epr-217 is overlaid at the bottom of the two beam
-        // rails while a shot is in flight.
+        // A lit bit from epr-217 is overlaid on the horizontal side-to-sight
+        // beam while a shot is in flight.
         @(negedge clk);
         dut.shot_standby = 0;
         dut.beam_state = 0;
-        dut.h_count = 16;
-        dut.v_count = 180;
+        dut.h_count = 127;
+        dut.v_count = 94;
         dut.pixel_phase = 0;
+        force dut.beam_q = 8'h02;
         repeat (8) @(negedge clk);
         if (red !== 8'h20 || green !== 8'hff || blue !== 8'h40)
             $fatal(1, "beam overlay: %02x %02x %02x", red, green, blue);
+        release dut.beam_q;
 
         // Motor-on lights one precise red aiming pixel over the playfield.
         @(negedge clk);
