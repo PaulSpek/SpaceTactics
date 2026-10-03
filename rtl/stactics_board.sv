@@ -115,7 +115,12 @@ module stactics_board (
     wire beam_location = beam_y_visible && (beam_from_left || beam_from_right) &&
                          h_count != 128;
     wire [10:0] beam_rom_addr = {beam_index[3], beam_index[5:4], beam_state[7:0]};
-    wire beam_pixel = !shot_standby && beam_location && beam_q[beam_index[2:0]];
+    // epr-217 adds spark texture, but is intentionally not the sole coverage
+    // mask: its sparse bit pattern previously made a full shot look as though
+    // it stopped roughly a third of the way to the sight.
+    wire beam_gap = (beam_edge_distance[3:0] == beam_state[3:0]) &&
+                    !beam_q[beam_index[2:0]];
+    wire beam_pixel = !shot_standby && beam_location && !beam_gap;
     // The cabinet's sight is a single red aiming lamp. Keep it a true one
     // pixel point, rather than a raster-scaled cursor, so it remains precise.
     wire sight_pixel = audio_latch[6] && h_count == 128 && v_count == 94;
