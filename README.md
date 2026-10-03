@@ -14,10 +14,6 @@ This is an experimental hardware revision. It includes the 8080 compatible CPU, 
 - docs/ — hardware-research notes and build/development documentation.
 - scripts/ — inherited MiSTer build, remote compilation, transfer, and simulation helpers.
 
-## Build configuration
-
-Copy local.settings.example.ps1 to local.settings.ps1 and set paths and host names for your setup. It is deliberately ignored by Git: do not place passwords, tokens, or ROMs in tracked files.
-
 ## ROM preparation
 
 The normal MiSTer installation uses `releases/Space Tactics.mra` and a legally
