@@ -9,14 +9,13 @@ Primary source: [MAME Space Tactics driver](https://github.com/mamedev/mame/blob
 - Read ports and addressed output latches from 5000 through a000.
 - Four 4 KiB video RAM planes at b000, d000, e000, and f000.
 - Tile and graphics address formation, three scrolling planes, palette bank and color PROM.
-- 256 x 232 visible picture from MAME's 328 x 262 raster.
+- 256 x 232 visible picture from the source raster; the RTL now uses a 336 x 262 output timing with a 32-pixel horizontal sync pulse and retains the 256-pixel active image.
 
 ## Still to establish
 
-- MAME driver/source path and game set name.
-- CPU, clocks, memory map, ROM regions, and input DIP switches.
-- Video timing, palette, tile/sprite/object hardware, and priority rules.
-- Sound hardware and timing.
+- Exact cabinet crystal/divider values and CRT geometry.
+- Mechanical mirror calibration, beam LED optical spacing, and dashboard dimensions.
+- Discrete sound component values and cabinet recordings for final tuning.
 - Any protection, discrete logic, or undocumented behavior.
 
 ## Evidence
@@ -29,19 +28,23 @@ Primary source: [MAME Space Tactics driver](https://github.com/mamedev/mame/blob
 
 ## Known gaps
 
-- MAME itself flags discrete and 76477 sound as missing. The MiSTer core now
-  gives `0x604x` player fire and the two MAME beam arrival thresholds separate
-  synthesized voices, matching the service manual's distinct PLAYER SHOT SOUND
-  and SHOT ARRIVE PULSE labels. The other effects, SN76477 model, and BBD echo
-  are still pending.
-- The cabinet's LED fire beam is rendered as two in-raster converging rails using
-  `epr-217`. A single red aiming pixel and a 16-line Energy Barrier, six-digit
-  score, and round dashboard strip are rendered from their live latches. The
-  dashboard is centred with 24-pixel horizontal safety margins and is visible
-  only while the game motor is active. The playfield is not rescaled: source
-  lines 8 through 223 are shown directly, cropping eight lines at both the top
-  and bottom.
+- MAME itself flags the discrete sound system as missing. The MiSTer core now
+  models the service-manual control groups: `0x604x` fire, two beam-arrival
+  thresholds, five secondary sound latches, the 76477-style invader voice,
+  and one MN3005-style echo path. The analog values remain bounded RTL
+  approximations and need cabinet recordings for final calibration.
+- The cabinet's LED fire beam is rendered as two shallow traces entering from
+  the left and right edges and converging near the red one-pixel sight. The
+  `epr-217` ROM still controls the lit segments. The 16-line Energy Barrier,
+  six-digit score, and round dashboard are rendered from live latches and are
+  shown only while the game motor is active; attract mode receives the full
+  raster area.
+- The current output timing uses a 336-pixel line and 262 lines per frame,
+  with active video in the first 256 by 232 pixels. This is a practical CRT
+  alignment choice, not a claim about the original cabinet's exact timing.
 - Mechanical mirror movement shifts the composed picture and supplies the
   position/status reads; its speed and limits still need hardware verification.
-- Pixel and CPU clocks use simple divisors of the inherited 50.54945 MHz PLL, giving a slightly slower frame rate than MAME's crystal derived timings.
-- Hardware gameplay with the user supplied ROM set has not yet been verified.
+- Pixel and CPU clocks use simple divisors of the inherited 50.54945 MHz PLL;
+  timing reports still contain inherited cross-domain setup/hold violations.
+- Hardware gameplay with the user supplied ROM set, final CRT centering, and
+  subjective sound fidelity still require on-device verification.
