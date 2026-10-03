@@ -28,6 +28,17 @@ Primary source: [MAME Space Tactics driver](https://github.com/mamedev/mame/blob
 
 ## Known gaps
 
+- The service manual identifies an independent explosion oscillator and two
+  separately adjustable paths, Explosion Lower (VR1) and Explosion Upper (VR4),
+  feeding the cabinet's lower and upper power amplifiers. The current core uses
+  a shared low-pass noise source with a decaying envelope, weighted toward the
+  lower channel rather than a pitched square-wave approximation. Component
+  values and a clean cabinet recording are still required to calibrate it.
+- MiSTer digital joystick directions are right, left, down, up on bits 0
+  through 3. The game input adapter uses bits 0/1 for the cabinet's horizontal
+  motor and bits 3/2 for its vertical motor. Keyboard OSD navigation is handled
+  by MiSTer's main menu firmware; the core configuration uses `J`, not `J1`, so
+  it does not request keyboard-to-joystick locking.
 - MAME itself flags the discrete sound system as missing. The MiSTer core now
   models the service-manual control groups: `0x604x` fire, two beam-arrival
   thresholds, five secondary sound latches, the 76477-style invader voice,

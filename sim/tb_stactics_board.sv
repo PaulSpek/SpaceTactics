@@ -61,7 +61,7 @@ module tb_stactics_board;
         write_cpu(16'he800, 8'h00);
         write_cpu(16'hf800, 8'h00);
         @(negedge clk);
-        dut.h_count = 0;
+        dut.h_count = 4;
         dut.v_count = 0;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);

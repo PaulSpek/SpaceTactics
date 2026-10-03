@@ -30,12 +30,16 @@ module stactics_sound #(
     logic [4:0] event_active;
     logic [14:0] noise_lfsr;
     logic signed [17:0] explosion_noise;
+    logic signed [17:0] explosion_target;
+    logic [5:0] explosion_noise_div;
 
     logic [15:0] high_step, low_step, high_envelope, low_envelope;
     logic signed [20:0] high_voice, low_voice, ufo_voice, warning_voice, rocket_voice;
     logic signed [20:0] invader_voice;
     logic signed [20:0] event_voice [0:4];
     logic signed [20:0] explosion_upper, explosion_lower;
+    logic [15:0] explosion_envelope;
+    logic signed [34:0] explosion_product;
     logic signed [20:0] dry_front, dry_back, echo_send, echo_wet;
     logic signed [20:0] front_mix, back_mix, mono_mix;
     integer i;
@@ -108,12 +112,13 @@ module stactics_sound #(
                                                 (event_variant[2] == 4'h4 ? 21'sd2200 : 21'sd1400);
         else event_voice[2] = event_voice[2] - 21'sd1400;
 
-        // Filtered noise gives the explosion the deep, rough cabinet character
-        // instead of a bright click riding on a square wave.
-        explosion_lower = square_voice(event_phase[3], decay_env(16'h0800, 16'h0100, event_age[3], 1)) + explosion_noise;
-        explosion_upper = square_voice(event_phase[3] + 16'h2800,
-                                       decay_env(16'h0600, 16'h0100, event_age[3], 1));
-        explosion_upper = explosion_upper + (explosion_noise >>> 1);
+        // The cabinet has separate lower and upper explosion volume paths.
+        // Model their source as a decaying low-pass noise burst, not a pitched
+        // oscillator: the latter is what made the previous effect sound like a pew.
+        explosion_envelope = decay_env(16'h7fff, 16'h0200, event_age[3], 1);
+        explosion_product = explosion_noise * $signed({1'b0, explosion_envelope});
+    explosion_lower = {explosion_product[34], explosion_product[34:15]};
+        explosion_upper = explosion_lower >>> 2;
         event_voice[3] = explosion_lower;
 
         event_voice[4] = square_voice(event_phase[4], decay_env(16'h2000, 16'h0200, event_age[4], 2));
@@ -168,6 +173,8 @@ module stactics_sound #(
             high_active <= 0; low_active <= 0; event_active <= 0;
             noise_lfsr <= 15'h4a35;
             explosion_noise <= 0;
+            explosion_target <= 0;
+            explosion_noise_div <= 0;
             diagnostic_d <= 0; diagnostic_bypass <= 0;
             audio_sample <= 0; audio_front <= 0; audio_back <= 0;
             for (i = 0; i < 5; i = i + 1) begin
@@ -217,7 +224,7 @@ module stactics_sound #(
                         0: if (event_age[i] >= 15'd9215) event_active[i] <= 0;
                         1: if (event_age[i] >= 15'd2559) event_active[i] <= 0;
                         2: if (event_age[i] >= 15'd2303) event_active[i] <= 0;
-                        3: if (event_age[i] >= 15'd12287) event_active[i] <= 0;
+                        3: if (event_age[i] >= 15'd24575) event_active[i] <= 0;
                         default: if (event_age[i] >= 15'd4607) event_active[i] <= 0;
                     endcase
                 end
@@ -229,9 +236,17 @@ module stactics_sound #(
                 rocket_phase <= rocket_phase + 16'd250;
                 noise_lfsr <= {noise_lfsr[13:0], noise_lfsr[14] ^ noise_lfsr[13]};
                 if (event_active[3]) begin
-                    if (noise_lfsr[5]) explosion_noise <= explosion_noise + ((18'sd12000 - explosion_noise) >>> 2);
-                    else explosion_noise <= explosion_noise + ((-18'sd12000 - explosion_noise) >>> 2);
-                end else explosion_noise <= explosion_noise - (explosion_noise >>> 4);
+                    explosion_noise_div <= explosion_noise_div + 1'b1;
+                    if (&explosion_noise_div) begin
+                        if (noise_lfsr[5]) explosion_target <= 18'sd14000;
+                        else explosion_target <= -18'sd14000;
+                    end
+                    explosion_noise <= explosion_noise + ((explosion_target - explosion_noise) >>> 4);
+                end else begin
+                    explosion_noise_div <= 0;
+                    explosion_target <= 0;
+                    explosion_noise <= explosion_noise - (explosion_noise >>> 5);
+                end
                 if (sound_enabled) begin
                     audio_front <= clamp16(front_mix);
                     audio_back <= clamp16(back_mix);

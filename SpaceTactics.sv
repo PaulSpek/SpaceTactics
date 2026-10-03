@@ -225,17 +225,13 @@ assign AUDIO_MIX = 2'b00;
 
 localparam CONF_STR = {
     "Space Tactics;;",
-    "F1,ROM,Load assembled ROM;",
     "P1,Game;",
     "P1O[1],Free play,Off,On;",
     "P1O[2],Barriers,4,6;",
     "P1O[3],Bonus barriers,1,2;",
     "P1O[4],Extended play,On,Off;",
-    "T[5],Test player-shot sound;",
     "T[0],Reset;",
     "R[0],Reset and close OSD;",
-    "J,Fire,Button 2,Button 3,Button 4,Button 5,Button 6,Button 7,Coin,Start;",
-    "jn,A,B,X,Y,L,R,,Select,Start;",
     "V,v1"
 };
 wire [127:0] status;
@@ -309,7 +305,9 @@ wire [7:0] in0 = {1'b0, ~joystick_0[5], ~joystick_0[12],
                  ~joystick_0[9], ~joystick_0[10]};
 wire [7:0] in1 = 8'h3f; // Coin A/B 1:1; demo and initials enabled.
 wire [7:0] in2 = {1'b1, !status[1], 1'b1, ~joystick_0[11], 4'b0000};
-    wire [7:0] in3 = {1'b0, ~joystick_0[2], ~joystick_0[3],
+    // MiSTer directions are right, left, down, up on bits 0 through 3.
+    // IN3[5:6] drive the cabinet's horizontal monitor motor.
+    wire [7:0] in3 = {1'b0, ~joystick_0[1], ~joystick_0[0],
                   status[4], !status[3], !status[2], 1'b0, ~joystick_0[4]};
 
 stactics_board board (
@@ -322,7 +320,8 @@ stactics_board board (
     .cpu_din(cpu_din),
     .irq_n(irq_n),
     .in0(in0), .in1(in1), .in2(in2), .in3(in3),
-        .joy_ud_n({~joystick_0[1], ~joystick_0[0]}),
+        // joy_ud_n[0] is up and joy_ud_n[1] is down.
+        .joy_ud_n({~joystick_0[2], ~joystick_0[3]}),
     .diag_sound(status[5]),
     .rom_wr(ioctl_download && ioctl_wr && ioctl_index == 16'd1),
     .rom_addr(ioctl_addr[15:0]),

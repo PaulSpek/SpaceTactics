@@ -58,11 +58,15 @@ module stactics_board (
     // During attract mode the whole raster is available. Once the game latch
     // is active, retain the cabinet-style crop and compact dashboard strip.
     wire game_layout = (audio_latch[6] === 1'b1);
-    wire playfield_area = h_count < 256 && (game_layout ? v_count < 216 : v_count < 232);
+    // Reserve four pixels at each side as CRT safety blanking. This is output
+    // blanking, not vertical scaling, and keeps the dashboard within overscan.
+    wire playfield_area = h_count >= 4 && h_count < 252 &&
+                          (game_layout ? v_count < 216 : v_count < 232);
     // Keep the source origin stable so the attract artwork remains aligned;
     // only the available output raster changes between layouts.
     wire [8:0] playfield_y = {1'b0, v_count[7:0]} + 9'd8;
-    wire signed [9:0] source_x_calc = $signed({1'b0, ~h_count[7:0]}) + horiz_pos;
+    wire [7:0] raster_x = h_count[7:0] - 8'd4;
+    wire signed [9:0] source_x_calc = $signed({1'b0, ~raster_x}) + horiz_pos;
     wire signed [9:0] source_y_calc = $signed({1'b0, playfield_y}) - vert_pos;
     wire source_valid = playfield_area &&
                         source_x_calc >= 0 && source_x_calc < 256 &&
@@ -335,7 +339,7 @@ module stactics_board (
         end else pixel_phase <= pixel_phase + 1'b1;
     end
     assign ce_pixel = pixel_phase == 9;
-    assign de = h_count < 256 && v_count < 232;
+    assign de = h_count >= 4 && h_count < 252 && v_count < 232;
     assign hs = !(h_count >= 276 && h_count < 308);
     assign vs = !(v_count >= 240 && v_count < 244);
 endmodule
