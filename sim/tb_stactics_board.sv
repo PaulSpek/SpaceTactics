@@ -12,6 +12,7 @@ module tb_stactics_board;
     wire [7:0] cpu_din, red, green, blue;
     wire irq_n, ce_pixel, hs, vs, de;
     wire signed [15:0] audio_sample;
+    wire signed [15:0] audio_front, audio_back;
 
     stactics_board dut (.*);
 
@@ -102,7 +103,7 @@ module tb_stactics_board;
         @(negedge clk);
         dut.shot_standby = 0;
         dut.beam_state = 0;
-        dut.h_count = 0;
+        dut.h_count = 54;
         dut.v_count = 180;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);

@@ -4,9 +4,7 @@ An in-progress FPGA implementation of the 1980s arcade game **Space Tactics** fo
 
 ## Status
 
-This is a first hardware revision. It includes the 8080 compatible CPU, MAME memory map, four scrolling video planes, palette PROM lookup, basic game inputs, visible mirror movement, a single-pixel red aiming sight, an in-raster representation of the ROM-driven LED fire beam, and a 16-line live dashboard for Energy Barrier, score, and round indicators. The dashboard is centred for CRT overscan and appears only while the game motor is active. MiSTer ROM loading and separate synthesized fire/beam-arrival shot voices are also implemented. The remaining discrete sounds, SN76477 model, BBD echo, other cabinet lamps, and accurate motor timing are still pending. The inherited 50.54945 MHz PLL output is divided to approximately 1.944 MHz CPU and 5.055 MHz pixel clocks; exact MAME timing and broader hardware testing remain to be done.
-
-The latest local Quartus 17.0 full compile produced `output_files/SpaceTactics.rbf`, but TimeQuest reported unmet setup and hold timing (worst setup slack -40.249 ns; worst hold slack -332.176 ns, including inherited framework clock domains). Treat this bitstream as experimental; timing closure and broader on-device testing are still required.
+This is an experimental hardware revision. It includes the 8080 compatible CPU, MAME memory map, four scrolling video planes, palette PROM lookup, cabinet-style mirror movement, a single-pixel red aiming sight, shallow in-raster laser traces, and a compact game-only dashboard. MiSTer ROM loading, SN76477-inspired effects, MN3005-style echo, and separate shot/arrival voices are implemented. Timing closure and broader on-device testing remain to be done.
 
 ## Layout
 
@@ -16,7 +14,7 @@ The latest local Quartus 17.0 full compile produced `output_files/SpaceTactics.r
 - docs/ — hardware-research notes and build/development documentation.
 - scripts/ — inherited MiSTer build, remote compilation, transfer, and simulation helpers.
 
-## Local configuration
+## Build configuration
 
 Copy local.settings.example.ps1 to local.settings.ps1 and set paths and host names for your setup. It is deliberately ignored by Git: do not place passwords, tokens, or ROMs in tracked files.
 
@@ -44,27 +42,34 @@ Use **Define Space Tactics buttons** in the core OSD to map Fire, cabinet
 buttons 2 through 7, Coin, and Start. The default gamepad mapping uses A/B/X/Y,
 L/R, Select for Coin, and Start for Start. The D-pad controls the aiming motor.
 
-## Build
+## Build and install
 
-The MiSTer framework and TV80 CPU were inherited from the Exidy Sorcerer project. Quartus Prime Lite 17.0 targets the DE10-Nano:
-
-```powershell
-& 'D:\intelFPGA_lite\17.0\quartus\bin64\quartus_sh.exe' --flow compile SpaceTactics
-```
-
-For the faster Windows workstation, use the example settings. The script sends the Quartus source tree, builds remotely, and fetches the RBF:
+The MiSTer framework and TV80 CPU were inherited from the Exidy Sorcerer project. Use the configured remote Quartus workstation. The script sends the source tree, builds remotely, and fetches the RBF:
 
 ```powershell
 . .\local.settings.ps1
 .\scripts\remote_compile.ps1 @SpaceTacticsRemoteBuild
 ```
 
-Deployment is a separate step after inspecting the build result:
+After the remote build succeeds, transfer the RBF to the MiSTer:
 
 ```powershell
 .\scripts\transfer_to_mister.ps1 @SpaceTacticsTransfer
 ```
 
-If these machine settings change, edit the ignored `local.settings.ps1`. The tracked example shows the same schema without local host details.
+The transfer script installs the core at `/media/fat/_Arcade/cores/SpaceTactics.rbf`.
+
+### MiSTer installation
+
+1. Obtain a legally dumped `stactics.zip` matching the MAME set.
+2. Copy `releases/Space Tactics.mra` to `/media/fat/_Arcade/`.
+3. Copy `SpaceTactics.rbf` to `/media/fat/_Arcade/cores/`.
+4. Copy `stactics.zip` to `/media/fat/games/mame/`.
+5. From the MiSTer menu, open **Arcade** and select **Space Tactics**. The MRA assembles and loads the ROMs automatically.
+6. Open the core OSD and use **Define Space Tactics buttons** to map the cabinet controls. The D-pad moves the aiming motor; Fire launches the laser; Coin and Start retain their normal arcade functions.
+
+For a direct development load without the MRA, place a generated `roms/SpaceTactics.rom` in `/media/fat/_Arcade/Space Tactics/` and choose **Load assembled ROM** from the core OSD.
+
+If machine settings change, edit the ignored `local.settings.ps1`. The tracked example shows the same schema without local host details.
 
 See [MAME research](docs/mame-research.md) for hardware mapping and the remaining implementation gaps.

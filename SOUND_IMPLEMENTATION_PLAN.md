@@ -26,7 +26,10 @@ The first end-to-end milestone is implemented:
 - the RBF has been transferred and hash-verified on the MiSTer.
 
 See `docs/sound-control-matrix.md` for address evidence and confidence levels.
-The remaining effects, SN76477 model, filters, and BBD echo are future phases.
+The second milestone now adds independent secondary voices, a game-specific
+SN76477 model, distance modulation, separate front/back mixes and a filtered
+4096-stage MN3005-style echo. Exact component-derived tuning and definitive
+naming of the five secondary strobes remain future work.
 
 ## Sources and findings
 

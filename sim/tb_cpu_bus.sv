@@ -13,6 +13,7 @@ module tb_cpu_bus;
     wire irq_n, ce_pixel, hs, vs, de;
     wire [7:0] red, green, blue;
     wire signed [15:0] audio_sample;
+    wire signed [15:0] audio_front, audio_back;
     logic [2:0] divider = 0;
     always @(posedge clk) divider <= divider + 1'b1;
     wire cpu_ce = divider == 3'd7;
@@ -33,7 +34,8 @@ module tb_cpu_bus;
         .rom_wr(rom_wr), .rom_addr(rom_addr),
         .rom_data(rom_data), .ce_pixel(ce_pixel), .red(red),
         .green(green), .blue(blue), .hs(hs), .vs(vs), .de(de),
-        .audio_sample(audio_sample)
+        .audio_sample(audio_sample), .audio_front(audio_front),
+        .audio_back(audio_back)
     );
 
     task automatic load_byte(input [15:0] address, input [7:0] value);

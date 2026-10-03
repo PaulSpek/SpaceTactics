@@ -217,9 +217,9 @@ assign LED_USER = !rom_loaded;
 assign LED_POWER = 2'b00;
 assign LED_DISK = 2'b00;
 assign BUTTONS = 2'b00;
-wire signed [15:0] core_audio;
-assign AUDIO_L = core_audio;
-assign AUDIO_R = core_audio;
+wire signed [15:0] core_audio, core_audio_front, core_audio_back;
+assign AUDIO_L = core_audio_front;
+assign AUDIO_R = core_audio_back;
 assign AUDIO_S = 1'b1;
 assign AUDIO_MIX = 2'b00;
 
@@ -309,7 +309,7 @@ wire [7:0] in0 = {1'b0, ~joystick_0[5], ~joystick_0[12],
                  ~joystick_0[9], ~joystick_0[10]};
 wire [7:0] in1 = 8'h3f; // Coin A/B 1:1; demo and initials enabled.
 wire [7:0] in2 = {1'b1, !status[1], 1'b1, ~joystick_0[11], 4'b0000};
-wire [7:0] in3 = {1'b0, ~joystick_0[0], ~joystick_0[1],
+    wire [7:0] in3 = {1'b0, ~joystick_0[2], ~joystick_0[3],
                   status[4], !status[3], !status[2], 1'b0, ~joystick_0[4]};
 
 stactics_board board (
@@ -322,7 +322,7 @@ stactics_board board (
     .cpu_din(cpu_din),
     .irq_n(irq_n),
     .in0(in0), .in1(in1), .in2(in2), .in3(in3),
-    .joy_ud_n({~joystick_0[2], ~joystick_0[3]}),
+        .joy_ud_n({~joystick_0[1], ~joystick_0[0]}),
     .diag_sound(status[5]),
     .rom_wr(ioctl_download && ioctl_wr && ioctl_index == 16'd1),
     .rom_addr(ioctl_addr[15:0]),
@@ -330,6 +330,8 @@ stactics_board board (
     .ce_pixel(CE_PIXEL),
     .red(VGA_R), .green(VGA_G), .blue(VGA_B),
     .hs(VGA_HS), .vs(VGA_VS), .de(VGA_DE),
-    .audio_sample(core_audio)
+    .audio_sample(core_audio),
+    .audio_front(core_audio_front),
+    .audio_back(core_audio_back)
 );
 endmodule

@@ -17,7 +17,9 @@ module stactics_board (
     output logic        ce_pixel,
     output logic [7:0]  red, green, blue,
     output logic        hs, vs, de,
-    output logic signed [15:0] audio_sample
+    output logic signed [15:0] audio_sample,
+    output logic signed [15:0] audio_front,
+    output logic signed [15:0] audio_back
 );
     logic [7:0] program_rom [0:12287];
     logic [7:0] color_prom [0:2047];
@@ -37,6 +39,7 @@ module stactics_board (
     logic [7:0] scroll_d, scroll_e, scroll_f;
     logic [7:0] out_latch, audio_latch, lamp_latch;
     logic [4:0] sound2_pulse;
+    logic [3:0] sound2_subaddr;
     logic player_shot_pulse;
     logic [7:0] display_latch [0:15];
     logic [3:0] frame_count;
@@ -52,10 +55,12 @@ module stactics_board (
     // The real cabinet moves its monitor and mirror mechanically. MAME draws
     // the composed picture at (x-horiz_pos, y+vert_pos), then applies the
     // cabinet's horizontal flip. Work backwards from each output pixel here
-    // so that the same motion is visible on a conventional display. The game
-    // crop eight source lines from the top and bottom, leaving 216 unscaled
-    // playfield lines and reserving 16 raster lines for the dashboard.
-    wire playfield_area = h_count < 256 && v_count < 216;
+    // During attract mode the whole raster is available. Once the game latch
+    // is active, retain the cabinet-style crop and compact dashboard strip.
+    wire game_layout = (audio_latch[6] === 1'b1);
+    wire playfield_area = h_count < 256 && (game_layout ? v_count < 216 : v_count < 232);
+    // Keep the source origin stable so the attract artwork remains aligned;
+    // only the available output raster changes between layouts.
     wire [8:0] playfield_y = {1'b0, v_count[7:0]} + 9'd8;
     wire signed [9:0] source_x_calc = $signed({1'b0, ~h_count[7:0]}) + horiz_pos;
     wire signed [9:0] source_y_calc = $signed({1'b0, playfield_y}) - vert_pos;
@@ -90,9 +95,11 @@ module stactics_board (
     wire [7:0] beam_delta = 8'd188 - playfield_y[7:0];
     wire [7:0] beam_index_calc = beam_delta - (beam_delta >> 2) - (beam_delta >> 4);
     wire [5:0] beam_index = beam_index_calc > 62 ? 6'd62 : beam_index_calc[5:0];
-    wire [8:0] beam_x_left = beam_delta + (beam_delta >> 2) +
-                             (beam_delta >> 4) + (beam_delta >> 6);
-    wire [8:0] beam_x_right = 9'd255 - beam_x_left;
+    // The optical gun produces shallow, mostly horizontal traces rather than
+    // steep rails. Keep the two traces separated at the emitter and let them
+    // converge gently toward the target.
+    wire [8:0] beam_x_left = 9'd54 + (beam_delta >> 2);
+    wire [8:0] beam_x_right = 9'd201 - (beam_delta >> 2);
     wire beam_location = beam_y_visible &&
                          ((h_count >= beam_x_left && h_count <= beam_x_left + 2) ||
                           (h_count + 2 >= beam_x_right && h_count <= beam_x_right));
@@ -110,6 +117,7 @@ module stactics_board (
         .cpu_dout(cpu_dout),
         .audio_latch(audio_latch),
         .sound2_pulse(sound2_pulse),
+        .sound2_subaddr(sound2_subaddr),
         .player_shot_pulse(player_shot_pulse)
     );
 
@@ -118,14 +126,17 @@ module stactics_board (
         .reset(reset),
         .audio_latch(audio_latch),
         .sound2_pulse(sound2_pulse),
+        .sound2_subaddr(sound2_subaddr),
         .player_shot_pulse(player_shot_pulse),
         .shot_arrive_pulse(shot_arrive_pulse),
         .diagnostic_trigger(diag_sound),
-        .audio_sample(audio_sample)
+        .audio_sample(audio_sample),
+        .audio_front(audio_front),
+        .audio_back(audio_back)
     );
 
     stactics_dashboard dashboard (
-        .x(h_count), .y(v_count), .enabled(audio_latch[6]),
+        .x(h_count), .y(v_count), .enabled(game_layout),
         .display_1(display_latch[1]),
         .display_2(display_latch[2]),
         .display_3(display_latch[3]),

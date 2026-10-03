@@ -41,7 +41,7 @@ Primary source: [MAME Space Tactics driver](https://github.com/mamedev/mame/blob
   only while the game motor is active. The playfield is not rescaled: source
   lines 8 through 223 are shown directly, cropping eight lines at both the top
   and bottom.
-- Mechanical mirror movement now shifts the composed picture and supplies the
+- Mechanical mirror movement shifts the composed picture and supplies the
   position/status reads; its speed and limits still need hardware verification.
 - Pixel and CPU clocks use simple divisors of the inherited 50.54945 MHz PLL, giving a slightly slower frame rate than MAME's crystal derived timings.
 - Hardware gameplay with the user supplied ROM set has not yet been verified.

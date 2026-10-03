@@ -22,12 +22,12 @@ by MAME.
 | Address | Latch | MAME label | Current use | Confidence |
 | --- | --- | --- | --- | --- |
 | `0x6010` | Q0 | MUTE | High suppresses generated audio | Medium; polarity inferred from label |
-| `0x6011` | Q1 | INV. DISTANCE A | Preserved, not synthesized yet | High address/label; effect pending |
-| `0x6012` | Q2 | INV. DISTANCE B | Preserved, not synthesized yet | High address/label; effect pending |
-| `0x6013` | Q3 | UFO | Preserved, not synthesized yet | High address/label; behavior pending |
-| `0x6014` | Q4 | INVADER | Preserved, not synthesized yet | High address/label; behavior pending |
-| `0x6015` | Q5 | EMERGENCY | Preserved, not synthesized yet | High address/label; behavior pending |
-| `0x6016` | Q6 | motor / rocket overlap | Continues to control mirror motor; rocket pending | High |
+| `0x6011` | Q1 | INV. DISTANCE A | Selects one bit of the four-rate invader VCO model | High address/label; curve approximate |
+| `0x6012` | Q2 | INV. DISTANCE B | Selects one bit of the four-rate invader VCO model | High address/label; curve approximate |
+| `0x6013` | Q3 | UFO | Enables the modulated UFO oscillator | High address/label; waveform approximate |
+| `0x6014` | Q4 | INVADER | Enables the game-specific 76477 model | High address/label; constants approximate |
+| `0x6015` | Q5 | EMERGENCY | Enables the two-rate warning oscillator | High address/label; waveform approximate |
+| `0x6016` | Q6 | motor / rocket overlap | Controls mirror motor and sustained rocket/noise path | High relationship; waveform approximate |
 | `0x6017` | Q7 | SOUND ON | High enables generated gameplay audio | Medium; polarity inferred from label |
 
 The ROM contains direct `STA` writes to Q0 and Q3-Q7. Q1/Q2 may be reached by
@@ -42,8 +42,10 @@ normal latch outputs.
 | `0x6050-0x605f` | Clear shot-arrival flag | Existing beam/status behavior; no direct sound effect | High |
 
 The service manual's sound-board schematic labels **PLAYER SHOT SOUND** and
-**SHOT ARRIVE PULSE** separately. It also lists two MN3101/MN3005 BBD pairs,
-an MB4391, an AN6551, a 94560, an SN76477, and three LM324s. MAME's beam-state
+**SHOT ARRIVE PULSE** separately. The board assembly list identifies one MN3005
+delay IC and one MN3101 clock driver, plus MB4391M switches/mixers, AN6551
+amplifiers, a 94560AN, an SN76477 and an LM324. Quantities in the later table
+are recommended spares for five games, not the count fitted to one board. MAME's beam-state
 logic identifies two arrival thresholds (`0x08b` and `0x0ca`) and notes that
 they are sound triggers not yet implemented there. The current core therefore
 uses the hardware event timing rather than an artificial gap in one oscillator:
@@ -63,16 +65,30 @@ are not yet established. Static ROM scanning confirms these direct writes:
 
 | Address | Direct ROM write sites | Current implementation |
 | --- | --- | --- |
-| `0x60a0` | `0x0a6f`, `0x19a2` | One-cycle secondary pulse A |
-| `0x60b0` | `0x0d42`, `0x1992` | One-cycle secondary pulse B |
-| `0x60c4` | `0x0d2b`, `0x1a75` | One-cycle secondary pulse C |
-| `0x60d0` | `0x0b23` | One-cycle secondary pulse D |
-| `0x60e0` | `0x046f`, `0x11c3`, `0x1203`, `0x1264`, `0x126d` | One-cycle secondary pulse E |
+| `0x60a0` | `0x0a6f`, `0x19a2` | Independent one-shot A; provisional bomb-like voice |
+| `0x60b0` | `0x0d42`, `0x1992` | Independent one-shot B; provisional UFO-hit-like voice |
+| `0x60c4` | `0x0d2b`, `0x1a75` | Independent one-shot C; provisional invader-hit-like voice; low nibble retained |
+| `0x60d0` | `0x0b23` | Independent one-shot D; separate upper/lower explosion mix |
+| `0x60e0` | `0x046f`, `0x11c3`, `0x1203`, `0x1264`, `0x126d` | Independent one-shot E; provisional character/word voice |
 
-The control module preserves the five address groups as testable pulses, but
-they intentionally produce no audio until schematic tracing assigns them to
-specific bomb, explosion, hit, rocket, or character circuits. The `0x60c4`
-low-nibble distinction must be retained when that mapping is implemented.
+The five circuits can overlap and no longer pre-empt one another. Their effect
+names remain provisional because MAME has no handler and the scan does not make
+every input net legible. The complete low nibble is retained for later tracing;
+the known `0x60c4` form currently selects a distinct hit timbre.
+
+## Analogue and output model
+
+- `stactics_76477.sv` models the VCO, slow modulation, filtered noise and
+  attack/decay blocks used by the invader path. Q1/Q2 select four VCO rates.
+- `stactics_echo.sv` models one 4096-stage MN3005 path with low-pass loss,
+  bounded feedback and an approximately 83 ms first repeat. The MN3101 is the
+  clock driver, not a second delay line.
+- Short effects feed the BBD send. Sustained rocket and warning beds do not,
+  avoiding permanent feedback.
+- Front and back mixes remain separate through MiSTer AUDIO_L and AUDIO_R.
+  Explosion has separately shaped upper/lower contributions.
+- Oscillator and filter constants remain schematic-informed approximations and
+  should be tuned against direct cabinet captures when available.
 
 ## Diagnostic control
 
@@ -84,10 +100,11 @@ the emulated CPU-visible latch.
 ## First-milestone status
 
 - CPU sound latch extracted into `rtl/stactics_sound_ctrl.sv`.
-- Five secondary write groups decoded and simulation-tested.
+- Five independent secondary voices decoded and simulation-tested, including
+  overlap and preservation of the low address nibble.
 - Independent player-fire and beam-arrival generators implemented in
   `rtl/stactics_sound.sv`.
-- Signed dual-mono output connected to MiSTer.
+- Separate signed front/back mixes connected to MiSTer stereo output.
 - Mute, sound enable, saturation, reset, and diagnostic behavior tested.
 - Existing board/video and CPU-bus simulations pass.
 - Remote Quartus analysis and full compilation complete with zero errors.

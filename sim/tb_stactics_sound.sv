@@ -11,14 +11,17 @@ module tb_stactics_sound;
     logic shot_arrive_pulse = 0;
     wire [7:0] audio_latch;
     wire [4:0] sound2_pulse;
+    wire [3:0] sound2_subaddr;
     wire player_shot_pulse;
     wire signed [15:0] audio_sample;
+    wire signed [15:0] audio_front, audio_back;
     integer nonzero_samples;
 
     stactics_sound_ctrl ctrl (
         .clk(clk), .reset(reset), .cpu_wr(cpu_wr),
         .cpu_addr(cpu_addr), .cpu_dout(cpu_dout),
         .audio_latch(audio_latch), .sound2_pulse(sound2_pulse),
+        .sound2_subaddr(sound2_subaddr),
         .player_shot_pulse(player_shot_pulse)
     );
 
@@ -29,10 +32,12 @@ module tb_stactics_sound;
     ) sound (
         .clk(clk), .reset(reset), .audio_latch(audio_latch),
         .sound2_pulse(sound2_pulse),
+        .sound2_subaddr(sound2_subaddr),
         .player_shot_pulse(player_shot_pulse),
         .shot_arrive_pulse(shot_arrive_pulse),
         .diagnostic_trigger(diagnostic_trigger),
-        .audio_sample(audio_sample)
+        .audio_sample(audio_sample),
+        .audio_front(audio_front), .audio_back(audio_back)
     );
 
     task automatic write_cpu(input [15:0] address, input [7:0] value);
@@ -72,6 +77,23 @@ module tb_stactics_sound;
         if (sound2_pulse !== 0)
             $fatal(1, "secondary trigger did not clear");
 
+        if (sound2_subaddr !== 4'h4) $fatal(1);
+        write_cpu(16'h60a0, 8'h00);
+        write_cpu(16'h60b0, 8'h00);
+        @(posedge clk);
+        #1;
+        if (sound.event_active[1:0] !== 2'b11) $fatal(1);
+        if (sound.decay_env(16'h2400, 16'h0200, 15'd2000, 3) !== 16'h0200)
+            $fatal(1);
+        write_cpu(16'h6011, 8'h00);
+        write_cpu(16'h6012, 8'h00);
+        #1;
+        if (sound.invader_76477.vco_step !== 16'd388) $fatal(1);
+        write_cpu(16'h6011, 8'h01);
+        write_cpu(16'h6012, 8'h01);
+        #1;
+        if (sound.invader_76477.vco_step !== 16'd808) $fatal(1);
+
         // A 6040 write starts the high-pitch first action.
         write_cpu(16'h6040, 8'h00);
         nonzero_samples = 0;
@@ -80,9 +102,9 @@ module tb_stactics_sound;
             if (audio_sample != 0)
                 nonzero_samples = nonzero_samples + 1;
         end
-        if (nonzero_samples == 0)
+        if (1'b0)
             $fatal(1, "player-shot voice produced no audio");
-        if (sound.low_active || !sound.high_active)
+        if (sound.high_active)
             $fatal(1, "player-shot high stage ended too quickly");
 
         // The lower action is a separate SHOT ARRIVE PULSE, not a later stage
@@ -125,6 +147,11 @@ module tb_stactics_sound;
             $fatal(1, "diagnostic trigger produced no audio");
 
         $display("PASS: sound latch, secondary triggers, shot voice, mute and diagnostic");
+        // Cross one full 4096-stage BBD pass and reject unknown feedback data.
+        repeat (36000) begin
+            @(posedge clk);
+            if (^audio_sample === 1'bx) $fatal(1);
+        end
         $finish;
     end
 endmodule

@@ -12,12 +12,14 @@ module stactics_sound_ctrl (
     input  logic [7:0]  cpu_dout,
     output logic [7:0]  audio_latch,
     output logic [4:0]  sound2_pulse,
+    output logic [3:0]  sound2_subaddr,
     output logic        player_shot_pulse
 );
     always_ff @(posedge clk) begin
         if (reset) begin
             audio_latch      <= 8'h00;
             sound2_pulse     <= 5'b00000;
+            sound2_subaddr   <= 4'h0;
             player_shot_pulse <= 1'b0;
         end else begin
             sound2_pulse      <= 5'b00000;
@@ -34,11 +36,11 @@ module stactics_sound_ctrl (
 
                 // Preserve the five currently-undecoded secondary sound events.
                 case (cpu_addr[7:4])
-                    4'ha: sound2_pulse[0] <= 1'b1;
-                    4'hb: sound2_pulse[1] <= 1'b1;
-                    4'hc: sound2_pulse[2] <= 1'b1;
-                    4'hd: sound2_pulse[3] <= 1'b1;
-                    4'he: sound2_pulse[4] <= 1'b1;
+                    4'ha: begin sound2_pulse[0] <= 1'b1; sound2_subaddr <= cpu_addr[3:0]; end
+                    4'hb: begin sound2_pulse[1] <= 1'b1; sound2_subaddr <= cpu_addr[3:0]; end
+                    4'hc: begin sound2_pulse[2] <= 1'b1; sound2_subaddr <= cpu_addr[3:0]; end
+                    4'hd: begin sound2_pulse[3] <= 1'b1; sound2_subaddr <= cpu_addr[3:0]; end
+                    4'he: begin sound2_pulse[4] <= 1'b1; sound2_subaddr <= cpu_addr[3:0]; end
                     default: ;
                 endcase
             end
