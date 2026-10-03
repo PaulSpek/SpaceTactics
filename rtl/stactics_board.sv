@@ -84,7 +84,7 @@ module stactics_board (
                                  {1'b1, tile_e, ye[2:0]};
     wire [11:0] video_addr_f = pixel_phase < 2 ? {2'b00, tile_addr_f} :
                                  {1'b1, tile_f, yf[2:0]};
-    wire frame_tick = pixel_phase == 9 && h_count == 327 && v_count == 231;
+    wire frame_tick = pixel_phase == 9 && h_count == 335 && v_count == 231;
     wire cpu_we = cpu_wr && !reset;
 
     // The cabinet fire beam consists of two mirrored banks of 64 LEDs. Map
@@ -98,8 +98,8 @@ module stactics_board (
     // The optical gun produces shallow, mostly horizontal traces rather than
     // steep rails. Keep the two traces separated at the emitter and let them
     // converge gently toward the target.
-    wire [8:0] beam_x_left = 9'd54 + (beam_delta >> 2);
-    wire [8:0] beam_x_right = 9'd201 - (beam_delta >> 2);
+    wire [8:0] beam_x_left = 9'd16 + beam_delta - (beam_delta >> 3);
+    wire [8:0] beam_x_right = 9'd239 - beam_delta + (beam_delta >> 3);
     wire beam_location = beam_y_visible &&
                          ((h_count >= beam_x_left && h_count <= beam_x_left + 2) ||
                           (h_count + 2 >= beam_x_right && h_count <= beam_x_right));
@@ -107,7 +107,7 @@ module stactics_board (
     wire beam_pixel = !shot_standby && beam_location && beam_q[beam_index[2:0]];
     // The cabinet's sight is a single red aiming lamp. Keep it a true one
     // pixel point, rather than a raster-scaled cursor, so it remains precise.
-    wire sight_pixel = audio_latch[6] && h_count == 128 && v_count == 78;
+    wire sight_pixel = audio_latch[6] && h_count == 128 && v_count == 94;
 
     stactics_sound_ctrl sound_ctrl (
         .clk(clk),
@@ -327,7 +327,7 @@ module stactics_board (
         end
         if (pixel_phase == 9) begin
             pixel_phase <= 0;
-            if (h_count == 327) begin
+            if (h_count == 335) begin
                 h_count <= 0;
                 if (v_count == 261) v_count <= 0;
                 else v_count <= v_count + 1'b1;
@@ -336,6 +336,6 @@ module stactics_board (
     end
     assign ce_pixel = pixel_phase == 9;
     assign de = h_count < 256 && v_count < 232;
-    assign hs = !(h_count >= 272 && h_count < 304);
+    assign hs = !(h_count >= 276 && h_count < 308);
     assign vs = !(v_count >= 240 && v_count < 244);
 endmodule

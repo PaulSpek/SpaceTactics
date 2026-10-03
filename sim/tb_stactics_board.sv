@@ -72,7 +72,7 @@ module tb_stactics_board;
         // appears while the motor is off / a game is not in progress.
         @(negedge clk);
         dut.h_count = 128;
-        dut.v_count = 78;
+        dut.v_count = 94;
         #1;
         if (dut.sight_pixel || dut.dashboard_active)
             $fatal(1, "play indicators visible with motor off");
@@ -82,7 +82,7 @@ module tb_stactics_board;
         write_cpu(16'h6016, 8'h01);
         joy_ud_n = 2'b10;
         @(negedge clk);
-        dut.h_count = 327;
+        dut.h_count = 335;
         dut.v_count = 231;
         dut.pixel_phase = 9;
         @(negedge clk);
@@ -103,7 +103,7 @@ module tb_stactics_board;
         @(negedge clk);
         dut.shot_standby = 0;
         dut.beam_state = 0;
-        dut.h_count = 54;
+        dut.h_count = 16;
         dut.v_count = 180;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);
@@ -113,13 +113,13 @@ module tb_stactics_board;
         // Motor-on lights one precise red aiming pixel over the playfield.
         @(negedge clk);
         dut.h_count = 127;
-        dut.v_count = 78;
+        dut.v_count = 94;
         #1;
         if (dut.sight_pixel)
             $fatal(1, "red sight corner should be transparent");
         @(negedge clk);
         dut.h_count = 128;
-        dut.v_count = 78;
+        dut.v_count = 94;
         dut.pixel_phase = 0;
         repeat (8) @(negedge clk);
         if (red !== 8'hff || green !== 8'h18 || blue !== 8'h10)
@@ -143,7 +143,7 @@ module tb_stactics_board;
         if (red !== 8'hff || green !== 8'h38 || blue !== 8'h18)
             $fatal(1, "barrier indicator: %02x %02x %02x", red, green, blue);
         @(negedge clk);
-        dut.h_count = 327;
+        dut.h_count = 335;
         dut.v_count = 231;
         dut.pixel_phase = 9;
         @(negedge clk);

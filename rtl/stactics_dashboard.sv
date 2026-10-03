@@ -157,13 +157,13 @@ module stactics_dashboard (
                          ((y == 217 || y == 230) && x >= 171 && x <= 240));
 
             for (integer i = 0; i < 14; i = i + 1)
-                if (x >= 27 + i*4 && x < 30 + i*4 && y >= 219 && y < 224)
+                if (x >= 23 + i*4 && x < 26 + i*4 && y >= 219 && y < 224)
                     label_on = label_on |
-                        micro_glyph(barrier_char(i), y-219, x-(27+i*4));
+                        micro_glyph(barrier_char(i), y-219, x-(23+i*4));
             for (integer i = 0; i < 5; i = i + 1)
-                if (x >= 191 + i*4 && x < 194 + i*4 && y >= 219 && y < 224)
+                if (x >= 196 + i*4 && x < 199 + i*4 && y >= 219 && y < 224)
                     label_on = label_on |
-                        micro_glyph(round_char(i), y-219, x-(191+i*4));
+                        micro_glyph(round_char(i), y-219, x-(196+i*4));
 
             for (integer i = 0; i < 12; i = i + 1) begin
                 if (x == 29 + i*4 && y >= 226 && y <= 228) begin

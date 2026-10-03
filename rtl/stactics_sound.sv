@@ -110,9 +110,9 @@ module stactics_sound #(
 
         // Filtered noise gives the explosion the deep, rough cabinet character
         // instead of a bright click riding on a square wave.
-        explosion_lower = square_voice(event_phase[3], decay_env(16'h2000, 16'h0100, event_age[3], 1)) + explosion_noise;
+        explosion_lower = square_voice(event_phase[3], decay_env(16'h0800, 16'h0100, event_age[3], 1)) + explosion_noise;
         explosion_upper = square_voice(event_phase[3] + 16'h2800,
-                                       decay_env(16'h1600, 16'h0100, event_age[3], 1));
+                                       decay_env(16'h0600, 16'h0100, event_age[3], 1));
         explosion_upper = explosion_upper + (explosion_noise >>> 1);
         event_voice[3] = explosion_lower;
 
@@ -229,8 +229,8 @@ module stactics_sound #(
                 rocket_phase <= rocket_phase + 16'd250;
                 noise_lfsr <= {noise_lfsr[13:0], noise_lfsr[14] ^ noise_lfsr[13]};
                 if (event_active[3]) begin
-                    if (noise_lfsr[5]) explosion_noise <= explosion_noise + ((18'sd6000 - explosion_noise) >>> 3);
-                    else explosion_noise <= explosion_noise + ((-18'sd6000 - explosion_noise) >>> 3);
+                    if (noise_lfsr[5]) explosion_noise <= explosion_noise + ((18'sd12000 - explosion_noise) >>> 2);
+                    else explosion_noise <= explosion_noise + ((-18'sd12000 - explosion_noise) >>> 2);
                 end else explosion_noise <= explosion_noise - (explosion_noise >>> 4);
                 if (sound_enabled) begin
                     audio_front <= clamp16(front_mix);
