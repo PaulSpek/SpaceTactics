@@ -106,8 +106,10 @@ module tb_stactics_board;
         dut.h_count = 127;
         dut.v_count = 94;
         dut.pixel_phase = 0;
-        force dut.beam_q = 8'h20;
+        force dut.beam_q = 8'h80;
         repeat (8) @(negedge clk);
+        if (dut.beam_index !== 6'd63)
+            $fatal(1, "beam must reach LED 63 beside sight: %0d", dut.beam_index);
         if (red !== 8'h20 || green !== 8'hff || blue !== 8'h40)
             $fatal(1, "beam overlay: %02x %02x %02x", red, green, blue);
         release dut.beam_q;
