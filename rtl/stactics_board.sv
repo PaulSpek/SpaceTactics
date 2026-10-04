@@ -91,23 +91,43 @@ module stactics_board (
     wire frame_tick = pixel_phase == 9 && h_count == 335 && v_count == 231;
     wire cpu_we = cpu_wr && !reset;
 
-    // The cabinet's two LED banks fire from the extreme left/right edges
-    // toward the fixed sight. The advancing endpoints make the direction
-    // explicit: a fresh shot starts at the emitters and grows inward.
-    wire [7:0] beam_reach = beam_state[7:1] > 7'd124 ? 8'd124 :
-                            {1'b0, beam_state[7:1]};
+    // Render a short, repeated pulse rather than a permanently illuminated
+    // trail. Each 32-state group is one fast shot from both outer emitters
+    // towards the fixed sight, so a held fire sequence contains discrete
+    // beams instead of two long strokes.
+    wire [4:0] beam_phase = beam_state[4:0];
+    wire [9:0] beam_phase_square = beam_phase * beam_phase;
+    // Perspective/ease-out projection: x = 8p - p^2/8. It begins at
+    // roughly eight pixels per state and falls to about one near the sight.
+    wire [9:0] beam_reach_curve = ({5'b0, beam_phase} << 3) -
+                                  (beam_phase_square >> 3);
+    wire [7:0] beam_reach = beam_reach_curve > 10'd124 ? 8'd124 :
+                            beam_reach_curve[7:0];
+    // Near pulses are broader; perspective makes them visibly shorter as
+    // they recede toward the sight. The cabinet reference still shows a
+    // substantial packet at distance, so retain a 16-pixel far-end length.
+    wire [4:0] beam_length = 5'd31 - beam_reach[7:3];
     wire [8:0] beam_left_front = 9'd4 + beam_reach;
     wire [8:0] beam_right_front = 9'd251 - beam_reach;
-    wire beam_from_left = h_count >= 4 && h_count <= beam_left_front;
-    wire beam_from_right = h_count >= beam_right_front && h_count < 252;
-    // A three-row travelling ripple evokes the gently wavy LED traces in the
-    // cabinet rather than a perfectly digital straight line.
+    wire [8:0] beam_left_tail = beam_left_front > 9'd4 + beam_length ?
+                                  beam_left_front - beam_length : 9'd4;
+    wire [8:0] beam_right_tail = beam_right_front + beam_length < 9'd252 ?
+                                   beam_right_front + beam_length : 9'd251;
+    wire beam_from_left = h_count >= beam_left_tail && h_count <= beam_left_front;
+    wire beam_from_right = h_count >= beam_right_front && h_count <= beam_right_tail;
+    // The nearby beam has a visible three-row ripple. Perspective suppresses
+    // that displacement through the middle and makes the final approach a
+    // single straight line, where the wave would be too distant to resolve.
     wire [1:0] beam_wave = h_count[3:2] + beam_state[5:4];
     wire beam_y_visible = playfield_area &&
-                          ((beam_wave == 0 && v_count == 93) ||
-                           (beam_wave == 1 && v_count == 94) ||
-                           (beam_wave == 2 && v_count == 95) ||
-                           (beam_wave == 3 && v_count == 94));
+                          (beam_reach >= 8'd96 ? v_count == 94 :
+                           beam_reach >= 8'd64 ?
+                             ((beam_wave[0] && v_count == 95) ||
+                              (!beam_wave[0] && v_count == 94)) :
+                             ((beam_wave == 0 && v_count == 93) ||
+                              (beam_wave == 1 && v_count == 94) ||
+                              (beam_wave == 2 && v_count == 95) ||
+                              (beam_wave == 3 && v_count == 94)));
     wire [7:0] beam_edge_distance = h_count < 128 ? h_count - 8'd4 :
                                                       8'd251 - h_count;
     wire [5:0] beam_index = beam_edge_distance[7:1] > 6'd63 ? 6'd63 :
@@ -115,12 +135,9 @@ module stactics_board (
     wire beam_location = beam_y_visible && (beam_from_left || beam_from_right) &&
                          h_count != 128;
     wire [10:0] beam_rom_addr = {beam_index[3], beam_index[5:4], beam_state[7:0]};
-    // epr-217 adds spark texture, but is intentionally not the sole coverage
-    // mask: its sparse bit pattern previously made a full shot look as though
-    // it stopped roughly a third of the way to the sight.
-    wire beam_gap = (beam_edge_distance[3:0] == beam_state[3:0]) &&
-                    !beam_q[beam_index[2:0]];
-    wire beam_pixel = !shot_standby && beam_location && !beam_gap;
+    // Keep every active pulse solid: epr-217 is retained for the board ROM
+    // interface, but its sparse bits must not break a moving beam apart.
+    wire beam_pixel = !shot_standby && beam_location;
     // The cabinet's sight is a single red aiming lamp. Keep it a true one
     // pixel point, rather than a raster-scaled cursor, so it remains precise.
     wire sight_pixel = audio_latch[6] && h_count == 128 && v_count == 94;

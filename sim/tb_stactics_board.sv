@@ -102,9 +102,9 @@ module tb_stactics_board;
         // beam while a shot is in flight.
         @(negedge clk);
         dut.shot_standby = 0;
-        dut.beam_state = 248;
+        dut.beam_state = 31;
         dut.h_count = 127;
-        dut.v_count = 95;
+        dut.v_count = 94;
         dut.pixel_phase = 0;
         force dut.beam_q = 8'h20;
         repeat (8) @(negedge clk);
